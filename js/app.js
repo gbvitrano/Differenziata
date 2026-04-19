@@ -54,6 +54,38 @@ const YEARS = ['2010','2011','2012','2013','2014','2015',
                '2016','2017','2018','2019','2020','2021',
                '2022','2023','2024'];
 
+// Fraction column names in order (18 numeric cols after fixed fields 0-6)
+const FRACTION_KEYS = [
+  'umido','verde','carta','vetro','legno','metallo',
+  'plastica','raee','tessili','selettiva',
+  'rifCeD','pulizia','ingombrMisti','altro',
+  'totaleRD','ingombrSmalt','indiff','totaleRU',
+];
+
+const FRACTION_LABELS = {
+  umido:       'Frazione umida',
+  verde:       'Verde',
+  carta:       'Carta e cartone',
+  vetro:       'Vetro',
+  legno:       'Legno',
+  metallo:     'Metallo',
+  plastica:    'Plastica',
+  raee:        'RAEE',
+  tessili:     'Tessili',
+  selettiva:   'Selettiva',
+  rifCeD:      'Rif. C e D',
+  pulizia:     'Pulizia stradale',
+  ingombrMisti:'Ingombranti misti',
+  altro:       'Altro',
+};
+
+const FRACTION_COLORS = [
+  '#8B5E3C','#4CAF50','#2196F3','#26A69A',
+  '#A5673F','#9E9E9E','#FF7043','#9C27B0',
+  '#E91E63','#FF9800','#607D8B','#795548',
+  '#F44336','#00BCD4',
+];
+
 // ── STATE ─────────────────────────────────────────────────────────────────────
 
 let map;
@@ -64,6 +96,7 @@ let currentProvincia = '';
 let hoveredId   = null;
 let selectedIstat = null;
 let trendChart  = null;
+let fractionChart = null;
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 
@@ -99,34 +132,48 @@ function parseCSV(text) {
         : parseFloat(pctMatch[1] + '.' + pctMatch[2]);
     }
 
-    // First 7 fields are safe text/numbers (no comma-decimal issues)
     const parts = line.split(',');
     if (parts.length < 7) continue;
 
+    // Find the quoted % field index
+    const pctIdx = parts.findIndex(p => p.trim().startsWith('"'));
+
+    // Parse 18 fraction columns using smart int,dec pairing
+    // Each numeric value = 2 CSV fields (int + dec), null '-' = 1 field
+    const fractions = {};
+    let pos = 7;
+    for (const key of FRACTION_KEYS) {
+      if (pctIdx > 0 && pos >= pctIdx - 1) { fractions[key] = null; continue; }
+      const val = (parts[pos] || '').trim();
+      if (val === '-' || val === '') {
+        fractions[key] = null;
+        pos += 1;
+      } else {
+        const dec = (parts[pos + 1] || '0').trim();
+        fractions[key] = parseFloat(val + '.' + dec);
+        pos += 2;
+      }
+    }
+
     const row = {
-      anno:       parts[0].trim(),
-      istat:      parts[1].trim().padStart(6, '0'),
-      regione:    parts[2].trim(),
-      provincia:  parts[3].trim(),
-      comune:     parts[4].trim(),
+      anno:        parts[0].trim(),
+      istat:       parts[1].trim().padStart(6, '0'),
+      regione:     parts[2].trim(),
+      provincia:   parts[3].trim(),
+      comune:      parts[4].trim(),
       popolazione: parseInt(parts[5]) || 0,
-      dato:       parts[6].trim(),
+      dato:        parts[6].trim(),
       percentuale: pct,
+      frazioni:    fractions,
     };
 
     if (!row.anno || !row.istat) continue;
 
-    // Index by anno
     if (!allData[row.anno]) allData[row.anno] = {};
-    if (!allData[row.anno][row.istat]) {
-      allData[row.anno][row.istat] = row;
-    }
+    if (!allData[row.anno][row.istat]) allData[row.anno][row.istat] = row;
 
-    // Index by istat (for trend chart)
     if (!allByIstat[row.istat]) allByIstat[row.istat] = {};
-    if (!allByIstat[row.istat][row.anno]) {
-      allByIstat[row.istat][row.anno] = row;
-    }
+    if (!allByIstat[row.istat][row.anno]) allByIstat[row.istat][row.anno] = row;
   }
 }
 
@@ -169,9 +216,12 @@ function initMap() {
     zoom: SICILIA_ZOOM,
     minZoom: 5,
     maxZoom: 15,
+    pitchWithRotate: false,
+    dragRotate: false,
+    touchPitch: false,
   });
 
-  map.addControl(new maplibregl.NavigationControl(), 'bottom-left');
+  map.addControl(new maplibregl.NavigationControl(), 'top-left');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
   map.on('load', () => {
@@ -350,6 +400,14 @@ function showInfoPanel(istat, row) {
         : `${(65 - pct).toFixed(1)}% sotto l'obiettivo di legge`)
     : '';
 
+  const fr = row.frazioni || {};
+  const totRU  = fr.totaleRU;
+  const totRD  = fr.totaleRD;
+  const indiff = fr.indiff;
+  const pop    = row.popolazione;
+  const kgRU   = (totRU && pop) ? ((totRU / pop) * 1000).toFixed(0) : null;
+  const kgRD   = (totRD && pop) ? ((totRD / pop) * 1000).toFixed(0) : null;
+
   panel.innerHTML = `
     <div id="sidebar-resize-handle"></div>
     <button id="info-panel-close" onclick="closeInfoPanel()">✕</button>
@@ -367,22 +425,48 @@ function showInfoPanel(istat, row) {
     <div class="info-grid">
       <div class="info-cell">
         <div class="info-cell-label">Popolazione</div>
-        <div class="info-cell-value">${row.popolazione.toLocaleString('it-IT')}</div>
+        <div class="info-cell-value">${pop.toLocaleString('it-IT')}</div>
       </div>
       <div class="info-cell">
         <div class="info-cell-label">Anno dati</div>
         <div class="info-cell-value">${currentAnno}</div>
       </div>
+      ${totRD !== null && totRD !== undefined ? `
+      <div class="info-cell">
+        <div class="info-cell-label">Totale RD (t)</div>
+        <div class="info-cell-value">${totRD.toLocaleString('it-IT', {maximumFractionDigits:1})}</div>
+      </div>` : ''}
+      ${totRU !== null && totRU !== undefined ? `
+      <div class="info-cell">
+        <div class="info-cell-label">Totale RU (t)</div>
+        <div class="info-cell-value">${totRU.toLocaleString('it-IT', {maximumFractionDigits:1})}</div>
+      </div>` : ''}
+      ${kgRU ? `
+      <div class="info-cell">
+        <div class="info-cell-label">Pro capite totale</div>
+        <div class="info-cell-value">${kgRU} kg/ab</div>
+      </div>` : ''}
+      ${kgRD ? `
+      <div class="info-cell">
+        <div class="info-cell-label">Pro capite RD</div>
+        <div class="info-cell-value">${kgRD} kg/ab</div>
+      </div>` : ''}
     </div>
 
     <div class="chart-section">
-      <h3>Trend 2010–2024</h3>
+      <h3>Composizione RD ${currentAnno}</h3>
+      <canvas id="fraction-chart"></canvas>
+    </div>
+
+    <div class="chart-section">
+      <h3>Trend % RD 2010–2024</h3>
       <canvas id="trend-chart"></canvas>
     </div>
   `;
 
   if (savedW) panel.style.width = savedW;
   panel.classList.remove('hidden');
+  renderFractionChart(row);
   renderTrendChart(istat);
   setupSidebarResize();
 }
@@ -390,6 +474,8 @@ function showInfoPanel(istat, row) {
 function closeInfoPanel() {
   document.getElementById('info-panel').classList.add('hidden');
   selectedIstat = null;
+  if (fractionChart) { fractionChart.destroy(); fractionChart = null; }
+  if (trendChart)    { trendChart.destroy();    trendChart    = null; }
   if (map) map.setFilter('comuni-selected', ['==', 'pro_com_t', '']);
 }
 
@@ -451,6 +537,71 @@ function renderTrendChart(istat) {
             callback: v => v + '%',
           },
           grid: { color: gridColor },
+        },
+      },
+    },
+  });
+}
+
+function renderFractionChart(row) {
+  if (fractionChart) { fractionChart.destroy(); fractionChart = null; }
+
+  const ctx = document.getElementById('fraction-chart');
+  if (!ctx) return;
+
+  const fr = row.frazioni || {};
+  const isDark = document.body.dataset.theme !== 'light';
+  const textColor = isDark ? '#a0a8b8' : '#4a5568';
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+
+  // Collect RD fractions with value > 0
+  const rdKeys = FRACTION_KEYS.slice(0, 14); // umido..altro
+  const labels = [], values = [], colors = [];
+  rdKeys.forEach((k, i) => {
+    const v = fr[k];
+    if (v !== null && v !== undefined && v > 0) {
+      labels.push(FRACTION_LABELS[k]);
+      values.push(v);
+      colors.push(FRACTION_COLORS[i]);
+    }
+  });
+
+  if (!values.length) {
+    ctx.parentElement.style.display = 'none';
+    return;
+  }
+  ctx.parentElement.style.display = '';
+
+  fractionChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => `${c.parsed.x.toLocaleString('it-IT', {maximumFractionDigits:1})} t`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: textColor, font: { size: 9 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v },
+          grid: { color: gridColor },
+        },
+        y: {
+          ticks: { color: textColor, font: { size: 9 } },
+          grid: { display: false },
         },
       },
     },
@@ -657,8 +808,12 @@ function toggleTheme() {
   const outlineColor = isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)';
   map.setPaintProperty('comuni-outline', 'line-color', outlineColor);
 
-  // Re-render trend chart with updated colors
-  if (selectedIstat) renderTrendChart(selectedIstat);
+  // Re-render charts with updated colors
+  if (selectedIstat) {
+    const row = allData[currentAnno]?.[selectedIstat];
+    if (row) renderFractionChart(row);
+    renderTrendChart(selectedIstat);
+  }
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
