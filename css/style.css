@@ -361,12 +361,13 @@ body {
 #logo-bottom img {
   display: block;
   filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+      margin-bottom: 25px;
 }
 
 /* ── LEGEND ──────────────────────────────────── */
 #legend {
   position: fixed;
-  bottom: 50px;
+  bottom: 10px;
   left: 10px;
   z-index: 100;
   background: var(--bg-panel);
@@ -718,6 +719,11 @@ body {
 
 .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(0.7); }
 
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl {
+    float: left;
+    margin: 0 0 10px 220px;
+}
+
 [data-theme="light"] .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: none; }
 
 /* ── RESPONSIVE: TABLET (≤ 900px) ───────────── */
@@ -777,14 +783,17 @@ body {
   }
 
   #bottom-right { right: 8px; bottom: 8px; }
-  #logo-bottom img { height: 38px; }
-  #legend { bottom: 55px; left: 26px; max-height: 50vh; overflow-y: auto; }
+  #logo-bottom img { height: 38px;         margin-bottom: 30px; }
+  #legend { bottom: 40px; left: 26px; max-height: 50vh; overflow-y: auto; }
   .legend-label { font-size: 9px; }
   .legend-swatch { width: 12px; height: 8px; }
   .modal-content { width: 95%; padding: 20px 14px; max-height: 85vh; }
 }
 
-/* ── RESPONSIVE: SMALL PHONE (≤ 380px) ──────── */
+/* ── RESPONSIVE: SMALL PHONE (≤ 380px) ──────── 
 @media (max-width: 380px) {
   #header-brand { display: none; }
 }
+*/
+
+
