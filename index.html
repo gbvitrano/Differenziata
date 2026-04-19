@@ -30,10 +30,10 @@
   <!-- ── HEADER ── -->
   <header id="header">
 
-    <!-- Riga 1: logo · titolo · stats · bottoni -->
-    <div id="header-row1">
+    <!-- Top row: display:contents su desktop → figli diretti di header -->
+    <div id="header-top-row">
       <a href="https://opendatasicilia.it" target="_blank" id="header-logo">
-        <img src="img/pa_hub_new.png" alt="Palermo Hub – OpenDataSicilia" height="36">
+        <img src="img/pa_hub_new.png" alt="Palermo Hub – OpenDataSicilia" height="32">
       </a>
       <div class="header-sep"></div>
       <div id="header-brand">
@@ -54,31 +54,44 @@
           <span class="stat-label">≥ 65%</span>
         </div>
       </div>
-      <div id="header-actions">
-        <button class="btn-icon" id="btn-theme" title="Cambia tema">🌙</button>
-        <button class="btn-icon" id="btn-info" title="Informazioni">ℹ</button>
+      <!-- Controls (anno · provincia · comune · bottoni) -->
+      <div id="controls">
+        <div id="year-control">
+          <label for="year-slider">Anno: <strong id="year-display">2024</strong></label>
+          <input type="range" id="year-slider" min="2010" max="2024" value="2024" step="1">
+        </div>
+        <div class="header-sep"></div>
+        <div id="province-control">
+          <label for="province-select">Provincia</label>
+          <select id="province-select"></select>
+        </div>
+        <div class="header-sep"></div>
+        <div id="comune-control">
+          <label for="comune-select">Comune</label>
+          <select id="comune-select"><option value="">— Tutti —</option></select>
+        </div>
+        <div class="header-sep"></div>
+        <div id="header-actions">
+          <button class="btn-icon" id="btn-theme" title="Cambia tema">🌙</button>
+          <button class="btn-icon" id="btn-info" title="Informazioni">ℹ</button>
+        </div>
       </div>
-    </div>
-
-    <!-- Riga 2: anno · provincia · comune -->
-    <div id="header-row2">
-      <div id="year-control">
-        <label for="year-slider">Anno: <strong id="year-display">2024</strong></label>
-        <input type="range" id="year-slider" min="2010" max="2024" value="2024" step="1">
-      </div>
-      <div class="header-sep"></div>
-      <div id="province-control">
-        <label for="province-select">Provincia</label>
-        <select id="province-select"></select>
-      </div>
-      <div class="header-sep"></div>
-      <div id="comune-control">
-        <label for="comune-select">Comune</label>
-        <select id="comune-select"><option value="">— Tutti —</option></select>
+      <!-- Mobile: solo hamburger -->
+      <div id="header-mobile-actions">
+        <button class="btn-icon" id="mobile-filters-btn" title="Filtri">☰</button>
       </div>
     </div>
 
   </header>
+
+  <!-- ── DRAWER MOBILE (fuori da header per evitare backdrop-filter containing block) ── -->
+  <div id="mobile-filters-drawer">
+    <div id="mobile-drawer-header">
+      <span>Filtri</span>
+      <button id="mobile-drawer-close">✕</button>
+    </div>
+    <div id="mobile-drawer-body"></div>
+  </div>
 
   <!-- ── MAP ── -->
   <div id="map"></div>

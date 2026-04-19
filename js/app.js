@@ -697,6 +697,10 @@ function setupControls() {
   // Theme toggle
   document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 
+  // Mobile drawer
+  document.getElementById('mobile-filters-btn').addEventListener('click', toggleMobileFilters);
+  document.getElementById('mobile-drawer-close').addEventListener('click', toggleMobileFilters);
+
   // Info modal
   document.getElementById('btn-info').addEventListener('click', () => {
     document.getElementById('info-modal').classList.remove('hidden');
@@ -838,6 +842,23 @@ function computeStats() {
 function formatPct(v) {
   if (v === null || v === undefined || isNaN(v)) return '–';
   return v.toFixed(1);
+}
+
+// ── MOBILE DRAWER ─────────────────────────────────────────────────────────────
+
+function toggleMobileFilters() {
+  const drawer  = document.getElementById('mobile-filters-drawer');
+  const body    = document.getElementById('mobile-drawer-body');
+  const controls = document.getElementById('controls');
+  const isOpen  = drawer.classList.toggle('open');
+
+  if (isOpen) {
+    body.appendChild(controls);
+    controls.style.display = 'flex';
+  } else {
+    document.getElementById('header-top-row').appendChild(controls);
+    controls.style.display = '';
+  }
 }
 
 // ── SIDEBAR RESIZE ────────────────────────────────────────────────────────────
