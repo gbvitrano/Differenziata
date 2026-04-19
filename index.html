@@ -54,8 +54,8 @@
 
     <!-- Top row: display:contents su desktop → figli diretti di header -->
     <div id="header-top-row">
-      <a href="https://opendatasicilia.it" target="_blank" id="header-logo">
-        <img src="img/pa_hub_new.png" alt="Palermo Hub – OpenDataSicilia" height="32">
+      <a href="https://palermohub.opendatasicilia.it/" target="_blank" id="header-logo">
+        <img src="img/pa_hub_new.png" title="Palermo Hub – OpenDataSicilia" alt="Palermo Hub – OpenDataSicilia" height="32">
       </a>
       <div class="header-sep"></div>
       <div id="header-brand">
@@ -137,12 +137,65 @@
   <!-- ── BOTTOM-RIGHT: LOGO ── -->
   <div id="bottom-right">
     <a href="https://opendatasicilia.it" target="_blank" id="logo-bottom">
-      <img src="img/logo.png" alt="OpenDataSicilia" height="50">
+      <img src="img/logo.png" title="OpenDataSicilia" alt="OpenDataSicilia" height="50">
     </a>
   </div>
 
   <!-- ── INFO PANEL ── -->
   <div id="info-panel" class="hidden"></div>
+
+  <!-- ── DATA TABLE MODAL ── -->
+  <div id="data-modal" class="modal hidden">
+    <div id="data-modal-content">
+      <div id="dm-header">
+        <h2>Dati raccolta differenziata</h2>
+        <button class="modal-close" id="dm-close">✕</button>
+      </div>
+
+      <div id="dm-toolbar">
+        <div class="dm-toolbar-row">
+          <div class="dm-filter-group">
+            <label>Anno</label>
+            <div class="dm-drop-wrap" id="dm-year-wrap">
+              <button id="dm-btn-years" class="dm-btn">Tutti gli anni ▾</button>
+              <div id="dm-year-panel" class="hidden"></div>
+            </div>
+          </div>
+          <div class="dm-filter-group">
+            <label>Provincia</label>
+            <select id="dm-prov"></select>
+          </div>
+          <div class="dm-filter-group">
+            <label>Cerca comune</label>
+            <input type="text" id="dm-search" placeholder="Nome comune…">
+          </div>
+        </div>
+        <div class="dm-toolbar-row">
+          <div class="dm-col-toggle-wrap">
+            <button id="dm-btn-cols" class="dm-btn">Colonne ▾</button>
+            <div id="dm-col-panel" class="hidden"></div>
+          </div>
+          <div class="dm-export-wrap">
+            <span id="dm-count"></span>
+            <button id="dm-btn-csv" class="dm-btn dm-btn-accent">&#8595; CSV</button>
+            <button id="dm-btn-json" class="dm-btn dm-btn-accent">&#8595; JSON</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="dm-table-wrap">
+        <table id="dm-table">
+          <thead id="dm-thead"></thead>
+          <tbody id="dm-tbody"></tbody>
+        </table>
+      </div>
+
+      <div id="dm-footer">
+        <span id="dm-sel-count">Nessuna riga selezionata — verranno esportate tutte</span>
+        <div id="dm-pagination"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── INFO MODAL ── -->
   <div id="info-modal" class="modal hidden">

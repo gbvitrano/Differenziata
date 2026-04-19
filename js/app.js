@@ -222,6 +222,7 @@ function initMap() {
   });
 
   map.addControl(new maplibregl.NavigationControl(), 'top-left');
+  map.addControl(new DataTableControl(), 'top-left');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
   map.on('load', () => {
@@ -705,12 +706,14 @@ function setupControls() {
   document.getElementById('btn-info').addEventListener('click', () => {
     document.getElementById('info-modal').classList.remove('hidden');
   });
-  document.querySelector('.modal-close').addEventListener('click', () => {
+  document.querySelector('#info-modal .modal-close').addEventListener('click', () => {
     document.getElementById('info-modal').classList.add('hidden');
   });
   document.getElementById('info-modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
   });
+
+  setupDataTable();
 }
 
 // ── COMUNE SELECT ─────────────────────────────────────────────────────────────
@@ -905,4 +908,432 @@ function setLoading(show, msg = '') {
   const el = document.getElementById('loading');
   el.classList.toggle('hidden', !show);
   if (msg) document.getElementById('loading-text').textContent = msg;
+}
+
+// ── DATA TABLE CONTROL ────────────────────────────────────────────────────────
+
+class DataTableControl {
+  onAdd() {
+    this._container = document.createElement('div');
+    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const btn = document.createElement('button');
+    btn.title = 'Apri tabella dati';
+    btn.className = 'dm-map-btn';
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M3 9h18M3 15h18M9 3v18"/>
+    </svg>`;
+    btn.addEventListener('click', openDataTable);
+    this._container.appendChild(btn);
+    return this._container;
+  }
+  onRemove() { this._container.parentNode?.removeChild(this._container); }
+}
+
+// ── DATA TABLE ────────────────────────────────────────────────────────────────
+
+const TABLE_COLS = [
+  { key: 'anno',         label: 'Anno',          frac: false, on: true  },
+  { key: 'istat',        label: 'Cod. ISTAT',    frac: false, on: false },
+  { key: 'provincia',    label: 'Provincia',     frac: false, on: true  },
+  { key: 'comune',       label: 'Comune',        frac: false, on: true  },
+  { key: 'popolazione',  label: 'Popolazione',   frac: false, on: true  },
+  { key: 'percentuale',  label: '% RD',          frac: false, on: true  },
+  { key: 'totaleRD',     label: 'Tot. RD (t)',   frac: true,  on: true  },
+  { key: 'totaleRU',     label: 'Tot. RU (t)',   frac: true,  on: true  },
+  { key: 'indiff',       label: 'Indiff. (t)',   frac: true,  on: false },
+  { key: 'umido',        label: 'Umido (t)',     frac: true,  on: false },
+  { key: 'verde',        label: 'Verde (t)',     frac: true,  on: false },
+  { key: 'carta',        label: 'Carta (t)',     frac: true,  on: false },
+  { key: 'vetro',        label: 'Vetro (t)',     frac: true,  on: false },
+  { key: 'legno',        label: 'Legno (t)',     frac: true,  on: false },
+  { key: 'metallo',      label: 'Metallo (t)',   frac: true,  on: false },
+  { key: 'plastica',     label: 'Plastica (t)',  frac: true,  on: false },
+  { key: 'raee',         label: 'RAEE (t)',      frac: true,  on: false },
+  { key: 'tessili',      label: 'Tessili (t)',   frac: true,  on: false },
+  { key: 'selettiva',    label: 'Selettiva (t)', frac: true,  on: false },
+  { key: 'rifCeD',       label: 'C&D (t)',       frac: true,  on: false },
+  { key: 'pulizia',      label: 'Pulizia (t)',   frac: true,  on: false },
+  { key: 'ingombrMisti', label: 'Ingomb. (t)',   frac: true,  on: false },
+  { key: 'altro',        label: 'Altro (t)',     frac: true,  on: false },
+];
+
+let dmYears    = new Set(YEARS);
+let dmProvincia = '';
+let dmSearch   = '';
+let dmRows     = [];
+let dmPage     = 0;
+const DM_PAGE  = 150;
+let dmSelected = new Set();
+let dmSortCol  = null;
+let dmSortAsc  = true;
+
+function setupDataTable() {
+  document.getElementById('dm-close').addEventListener('click', () => {
+    document.getElementById('data-modal').classList.add('hidden');
+  });
+
+  document.getElementById('data-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+  });
+
+  document.getElementById('dm-btn-csv').addEventListener('click', exportDmCSV);
+  document.getElementById('dm-btn-json').addEventListener('click', exportDmJSON);
+
+  document.getElementById('dm-prov').addEventListener('change', (e) => {
+    dmProvincia = e.target.value;
+    dmPage = 0; dmSelected.clear();
+    refreshDmTable();
+  });
+
+  document.getElementById('dm-search').addEventListener('input', (e) => {
+    dmSearch = e.target.value.trim();
+    dmPage = 0; dmSelected.clear();
+    refreshDmTable();
+  });
+
+  document.getElementById('dm-btn-years').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('dm-year-panel').classList.toggle('hidden');
+    document.getElementById('dm-col-panel').classList.add('hidden');
+  });
+
+  document.getElementById('dm-btn-cols').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('dm-col-panel').classList.toggle('hidden');
+    document.getElementById('dm-year-panel').classList.add('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (document.getElementById('data-modal')?.classList.contains('hidden')) return;
+    const colPanel  = document.getElementById('dm-col-panel');
+    const colBtn    = document.getElementById('dm-btn-cols');
+    const yearPanel = document.getElementById('dm-year-panel');
+    const yearBtn   = document.getElementById('dm-btn-years');
+    if (colPanel && colBtn && !colBtn.contains(e.target) && !colPanel.contains(e.target)) {
+      colPanel.classList.add('hidden');
+    }
+    if (yearPanel && yearBtn && !yearBtn.contains(e.target) && !yearPanel.contains(e.target)) {
+      yearPanel.classList.add('hidden');
+    }
+  });
+
+  // Province options
+  const provSel = document.getElementById('dm-prov');
+  provSel.innerHTML = '<option value="">Tutte le province</option>';
+  Object.keys(PROVINCE_BOUNDS).sort().forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    provSel.appendChild(opt);
+  });
+
+  buildYearDropdown();
+  buildColPanel();
+}
+
+function buildYearDropdown() {
+  const panel = document.getElementById('dm-year-panel');
+  panel.innerHTML = '';
+
+  const allLbl = document.createElement('label');
+  allLbl.className = 'dm-col-chk-label dm-year-all-lbl';
+  const allChk = document.createElement('input');
+  allChk.type = 'checkbox';
+  allChk.id = 'dm-year-chk-all';
+  allChk.checked = dmYears.size === YEARS.length;
+  allChk.addEventListener('change', () => {
+    dmYears = allChk.checked ? new Set(YEARS) : new Set([currentAnno]);
+    dmPage = 0; dmSelected.clear();
+    updateYearDropdown();
+    refreshDmTable();
+  });
+  allLbl.appendChild(allChk);
+  allLbl.appendChild(document.createTextNode('\u00a0Tutti gli anni'));
+  panel.appendChild(allLbl);
+
+  const sep = document.createElement('hr');
+  sep.style.cssText = 'border:none;border-top:1px solid var(--border);margin:5px 0;';
+  panel.appendChild(sep);
+
+  YEARS.forEach(y => {
+    const lbl = document.createElement('label');
+    lbl.className = 'dm-col-chk-label';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = dmYears.has(y);
+    chk.dataset.year = y;
+    chk.addEventListener('change', () => {
+      if (chk.checked) {
+        dmYears.add(y);
+      } else {
+        if (dmYears.size > 1) { dmYears.delete(y); } else { chk.checked = true; return; }
+      }
+      dmPage = 0; dmSelected.clear();
+      updateYearDropdown();
+      refreshDmTable();
+    });
+    lbl.appendChild(chk);
+    lbl.appendChild(document.createTextNode('\u00a0' + y));
+    panel.appendChild(lbl);
+  });
+}
+
+function updateYearDropdown() {
+  const btn = document.getElementById('dm-btn-years');
+  if (!btn) return;
+  if (dmYears.size === YEARS.length) {
+    btn.textContent = 'Tutti gli anni \u25be';
+  } else if (dmYears.size === 1) {
+    btn.textContent = [...dmYears][0] + ' \u25be';
+  } else {
+    btn.textContent = dmYears.size + ' anni \u25be';
+  }
+  // Sync checkboxes (panel might already be built)
+  document.querySelectorAll('#dm-year-panel input[data-year]').forEach(chk => {
+    chk.checked = dmYears.has(chk.dataset.year);
+  });
+  const allChk = document.getElementById('dm-year-chk-all');
+  if (allChk) allChk.checked = dmYears.size === YEARS.length;
+}
+
+function buildColPanel() {
+  const panel = document.getElementById('dm-col-panel');
+  panel.innerHTML = '';
+
+  // "Tutte" checkbox
+  const allLbl = document.createElement('label');
+  allLbl.className = 'dm-col-chk-label dm-year-all-lbl';
+  allLbl.style.gridColumn = '1 / -1';
+  const allChk = document.createElement('input');
+  allChk.type = 'checkbox';
+  allChk.id = 'dm-col-chk-all';
+  allChk.checked = TABLE_COLS.every(c => c.on);
+  allChk.addEventListener('change', () => {
+    TABLE_COLS.forEach(c => { c.on = allChk.checked; });
+    panel.querySelectorAll('input[data-col]').forEach(c => { c.checked = allChk.checked; });
+    refreshDmTableHeader();
+    refreshDmTableBody();
+  });
+  allLbl.appendChild(allChk);
+  allLbl.appendChild(document.createTextNode('\u00a0Tutte le colonne'));
+  panel.appendChild(allLbl);
+
+  const sep = document.createElement('hr');
+  sep.style.cssText = 'grid-column:1/-1;border:none;border-top:1px solid var(--border);margin:4px 0;';
+  panel.appendChild(sep);
+
+  TABLE_COLS.forEach(col => {
+    const lbl = document.createElement('label');
+    lbl.className = 'dm-col-chk-label';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = col.on;
+    chk.dataset.col = col.key;
+    chk.addEventListener('change', () => {
+      col.on = chk.checked;
+      const allChecked = TABLE_COLS.every(c => c.on);
+      const anyChecked = TABLE_COLS.some(c => c.on);
+      const allChkEl = document.getElementById('dm-col-chk-all');
+      if (allChkEl) { allChkEl.checked = allChecked; allChkEl.indeterminate = !allChecked && anyChecked; }
+      refreshDmTableHeader();
+      refreshDmTableBody();
+    });
+    lbl.appendChild(chk);
+    lbl.appendChild(document.createTextNode('\u00a0' + col.label));
+    panel.appendChild(lbl);
+  });
+}
+
+function openDataTable() {
+  document.getElementById('data-modal').classList.remove('hidden');
+  dmYears     = new Set([currentAnno]);
+  dmProvincia = currentProvincia;
+  dmSearch    = '';
+  dmPage      = 0;
+  dmSelected.clear();
+  dmSortCol   = null;
+  dmSortAsc   = true;
+
+  document.getElementById('dm-prov').value   = dmProvincia;
+  document.getElementById('dm-search').value = '';
+  updateYearDropdown();
+  refreshDmTable();
+}
+
+function getColValue(row, col) {
+  if (!col.frac) return row[col.key];
+  return row.frazioni?.[col.key] ?? null;
+}
+
+function formatCellValue(val, col) {
+  if (val === null || val === undefined) return '–';
+  if (col.key === 'percentuale') return val.toFixed(1) + '%';
+  if (col.key === 'popolazione') return val.toLocaleString('it-IT');
+  if (col.frac) return val.toLocaleString('it-IT', { maximumFractionDigits: 1 });
+  return val;
+}
+
+function buildDmRows() {
+  const rows = [];
+  for (const anno of YEARS) {
+    if (!dmYears.has(anno)) continue;
+    for (const row of Object.values(allData[anno] || {})) {
+      if (dmProvincia && row.provincia !== dmProvincia) continue;
+      if (dmSearch && !row.comune.toLowerCase().includes(dmSearch.toLowerCase())) continue;
+      rows.push(row);
+    }
+  }
+  if (dmSortCol) {
+    const col = TABLE_COLS.find(c => c.key === dmSortCol);
+    rows.sort((a, b) => {
+      const va = getColValue(a, col);
+      const vb = getColValue(b, col);
+      const nullA = va === null || va === undefined;
+      const nullB = vb === null || vb === undefined;
+      if (nullA && nullB) return 0;
+      if (nullA) return 1;
+      if (nullB) return -1;
+      const r = va < vb ? -1 : va > vb ? 1 : 0;
+      return dmSortAsc ? r : -r;
+    });
+  }
+  return rows;
+}
+
+function refreshDmTable() {
+  dmRows = buildDmRows();
+  refreshDmTableHeader();
+  refreshDmTableBody();
+  updateDmCount();
+  updateDmSelCount();
+  renderDmPagination();
+}
+
+function refreshDmTableHeader() {
+  const activeCols = TABLE_COLS.filter(c => c.on);
+  document.getElementById('dm-thead').innerHTML = `<tr>
+    <th class="dm-chk-col"><input type="checkbox" id="dm-th-all" title="Seleziona/deseleziona tutto"></th>
+    ${activeCols.map(c =>
+      `<th class="dm-th" data-key="${c.key}">${c.label}${dmSortCol === c.key ? (dmSortAsc ? ' ▲' : ' ▼') : ''}</th>`
+    ).join('')}
+  </tr>`;
+
+  document.querySelectorAll('#dm-thead .dm-th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (dmSortCol === key) { dmSortAsc = !dmSortAsc; } else { dmSortCol = key; dmSortAsc = true; }
+      dmPage = 0;
+      refreshDmTable();
+    });
+  });
+
+  document.getElementById('dm-th-all')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      dmRows.forEach(r => dmSelected.add(r.anno + '_' + r.istat));
+    } else {
+      dmSelected.clear();
+    }
+    updateDmSelCount();
+    document.querySelectorAll('#dm-tbody .dm-row-chk').forEach(c => { c.checked = e.target.checked; });
+    document.querySelectorAll('#dm-tbody tr').forEach(tr => tr.classList.toggle('dm-selected', e.target.checked));
+  });
+}
+
+function refreshDmTableBody() {
+  const activeCols = TABLE_COLS.filter(c => c.on);
+  const pageRows   = dmRows.slice(dmPage * DM_PAGE, (dmPage + 1) * DM_PAGE);
+
+  document.getElementById('dm-tbody').innerHTML = pageRows.map(row => {
+    const key      = row.anno + '_' + row.istat;
+    const selected = dmSelected.has(key);
+    return `<tr class="${selected ? 'dm-selected' : ''}">
+      <td class="dm-chk-col"><input type="checkbox" class="dm-row-chk" data-key="${key}" ${selected ? 'checked' : ''}></td>
+      ${activeCols.map(col => `<td>${formatCellValue(getColValue(row, col), col)}</td>`).join('')}
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('#dm-tbody .dm-row-chk').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const k = e.target.dataset.key;
+      if (e.target.checked) dmSelected.add(k); else dmSelected.delete(k);
+      e.target.closest('tr').classList.toggle('dm-selected', e.target.checked);
+      updateDmSelCount();
+    });
+  });
+}
+
+function updateDmCount() {
+  document.getElementById('dm-count').textContent = dmRows.length.toLocaleString('it-IT') + ' righe';
+}
+
+function updateDmSelCount() {
+  const n  = dmSelected.size;
+  const el = document.getElementById('dm-sel-count');
+  el.textContent = n === 0
+    ? 'Nessuna selezionata — verranno esportate tutte'
+    : `${n.toLocaleString('it-IT')} selezionate`;
+}
+
+function renderDmPagination() {
+  const total = Math.ceil(dmRows.length / DM_PAGE);
+  const pg = document.getElementById('dm-pagination');
+  if (total <= 1) { pg.innerHTML = ''; return; }
+  pg.innerHTML = `
+    <button id="dm-prev" ${dmPage === 0 ? 'disabled' : ''}>&#8249;</button>
+    <span>Pag.&nbsp;${dmPage + 1}&nbsp;/&nbsp;${total}</span>
+    <button id="dm-next" ${dmPage >= total - 1 ? 'disabled' : ''}>&#8250;</button>`;
+  document.getElementById('dm-prev')?.addEventListener('click', () => { dmPage--; refreshDmTableBody(); renderDmPagination(); });
+  document.getElementById('dm-next')?.addEventListener('click', () => { dmPage++; refreshDmTableBody(); renderDmPagination(); });
+}
+
+function getExportRows() {
+  return dmSelected.size > 0
+    ? dmRows.filter(r => dmSelected.has(r.anno + '_' + r.istat))
+    : dmRows;
+}
+
+function csvCell(val) {
+  if (val === null || val === undefined) return '';
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function buildExportFilename(ext) {
+  const sorted = [...dmYears].sort();
+  const suffix = sorted.length === 1 ? sorted[0] : `${sorted[0]}-${sorted[sorted.length - 1]}`;
+  const prov   = dmProvincia ? `_${dmProvincia.toLowerCase()}` : '';
+  return `differenziata_sicilia_${suffix}${prov}.${ext}`;
+}
+
+function exportDmCSV() {
+  const activeCols = TABLE_COLS.filter(c => c.on);
+  const rows       = getExportRows();
+  const header     = activeCols.map(c => c.label).join(',');
+  const lines      = rows.map(row =>
+    activeCols.map(col => {
+      const v = getColValue(row, col);
+      return csvCell(v === null || v === undefined ? null : v);
+    }).join(',')
+  );
+  downloadFile([header, ...lines].join('\n'), buildExportFilename('csv'), 'text/csv;charset=utf-8;');
+}
+
+function exportDmJSON() {
+  const activeCols = TABLE_COLS.filter(c => c.on);
+  const rows       = getExportRows();
+  const data = rows.map(row => {
+    const obj = {};
+    activeCols.forEach(col => { obj[col.key] = getColValue(row, col) ?? null; });
+    return obj;
+  });
+  downloadFile(JSON.stringify(data, null, 2), buildExportFilename('json'), 'application/json');
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob(['\ufeff' + content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 }
