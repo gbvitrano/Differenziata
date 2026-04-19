@@ -340,6 +340,7 @@ function updateMap() {
 
 function showInfoPanel(istat, row) {
   const panel = document.getElementById('info-panel');
+  const savedW = panel.style.width;
   const pct   = row.percentuale;
   const color = pctToColor(pct);
 
@@ -350,6 +351,7 @@ function showInfoPanel(istat, row) {
     : '';
 
   panel.innerHTML = `
+    <div id="sidebar-resize-handle"></div>
     <button id="info-panel-close" onclick="closeInfoPanel()">✕</button>
     <h2>${row.comune}</h2>
     <div class="info-provincia">${row.provincia} · Sicilia</div>
@@ -379,8 +381,10 @@ function showInfoPanel(istat, row) {
     </div>
   `;
 
+  if (savedW) panel.style.width = savedW;
   panel.classList.remove('hidden');
   renderTrendChart(istat);
+  setupSidebarResize();
 }
 
 function closeInfoPanel() {
@@ -679,6 +683,46 @@ function computeStats() {
 function formatPct(v) {
   if (v === null || v === undefined || isNaN(v)) return '–';
   return v.toFixed(1);
+}
+
+// ── SIDEBAR RESIZE ────────────────────────────────────────────────────────────
+
+function setupSidebarResize() {
+  const handle = document.getElementById('sidebar-resize-handle');
+  const panel  = document.getElementById('info-panel');
+  if (!handle || !panel) return;
+
+  let startX, startW;
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ew-resize';
+
+    function onMove(e) {
+      const delta = startX - e.clientX;
+      const newW  = Math.min(
+        Math.max(startW + delta, 240),
+        Math.min(520, window.innerWidth - 32)
+      );
+      panel.style.width = newW + 'px';
+    }
+
+    function onUp() {
+      handle.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (trendChart) trendChart.resize();
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 function setLoading(show, msg = '') {
