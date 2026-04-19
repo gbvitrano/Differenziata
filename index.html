@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raccolta Differenziata in Sicilia</title>
+    <meta name="author" content="Giovan Battista Vitrano per OpenDataSicilia.it">
+    <meta http-equiv="content-language" content="IT">
+    <meta name="robots" content="index,follow">
+    <meta name="creation_Date" content="19/04/2026>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+      <link rel="icon" href="favicon.png" type="image/png"/>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="css/style.css">
+        <link rel="icon" href="favicon.png" type="image/png"/>
+  
+      <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-87653723-4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-87653723-4');
+    </script>
+  
+</head>
+<body data-theme="light">
+
+  <!-- ── HEADER ── -->
+  <header id="header">
+
+    <!-- Riga 1: logo · titolo · stats · bottoni -->
+    <div id="header-row1">
+      <a href="https://opendatasicilia.it" target="_blank" id="header-logo">
+        <img src="img/pa_hub_new.png" alt="Palermo Hub – OpenDataSicilia" height="36">
+      </a>
+      <div class="header-sep"></div>
+      <div id="header-brand">
+        <h1>Raccolta Differenziata</h1>
+        <span>Comuni della Sicilia · 2010–2024</span>
+      </div>
+      <div id="stats-bar">
+        <div class="stat-item">
+          <span class="stat-value" id="stat-comuni">–</span>
+          <span class="stat-label">Comuni</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-avg">–</span>
+          <span class="stat-label">Media RD</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-above65">–</span>
+          <span class="stat-label">≥ 65%</span>
+        </div>
+      </div>
+      <div id="header-actions">
+        <button class="btn-icon" id="btn-theme" title="Cambia tema">🌙</button>
+        <button class="btn-icon" id="btn-info" title="Informazioni">ℹ</button>
+      </div>
+    </div>
+
+    <!-- Riga 2: anno · provincia -->
+    <div id="header-row2">
+      <div id="year-control">
+        <label for="year-slider">Anno: <strong id="year-display">2024</strong></label>
+        <input type="range" id="year-slider" min="2010" max="2024" value="2024" step="1">
+      </div>
+      <div class="header-sep"></div>
+      <div id="province-control">
+        <label for="province-select">Provincia</label>
+        <select id="province-select"></select>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- ── MAP ── -->
+  <div id="map"></div>
+
+  <!-- ── LOADING ── -->
+  <div id="loading">
+    <div id="loading-spinner"></div>
+    <div id="loading-text">Caricamento dati…</div>
+  </div>
+
+  <!-- ── BOTTOM-RIGHT: LEGENDA + LOGO ── -->
+  <div id="bottom-right">
+    <div id="legend">
+      <div id="legend-title">% Raccolta Differenziata</div>
+      <div id="legend-scale"></div>
+      <div id="legend-no-data">
+        <div class="legend-swatch"></div>
+        <span>Dato non disponibile</span>
+      </div>
+    </div>
+    <a href="https://opendatasicilia.it" target="_blank" id="logo-bottom">
+      <img src="img/logo.png" alt="OpenDataSicilia" height="60">
+    </a>
+  </div>
+
+  <!-- ── INFO PANEL ── -->
+  <div id="info-panel" class="hidden"></div>
+
+  <!-- ── INFO MODAL ── -->
+  <div id="info-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close">✕</button>
+      <h2>Raccolta Differenziata in Sicilia</h2>
+      <p>
+        Mappa interattiva della percentuale di raccolta differenziata dei rifiuti urbani
+        nei comuni siciliani, dal 2010 al 2024.
+      </p>
+      <h3>Come si usa</h3>
+      <ul>
+        <li>Usa il <strong>cursore Anno</strong> per cambiare l'anno di riferimento</li>
+        <li>Filtra per <strong>Provincia</strong> per fare zoom su un'area</li>
+        <li><strong>Passa il mouse</strong> su un comune per vedere la percentuale</li>
+        <li><strong>Clicca</strong> su un comune per il dettaglio e il trend storico</li>
+      </ul>
+      <h3>Legenda colori</h3>
+      <p>
+        Il colore indica la percentuale di raccolta differenziata:
+        <strong style="color:#cc0000">rosso</strong> (bassa RD) →
+        <strong style="color:#f0ee00">giallo</strong> (media) →
+        <strong style="color:#007700">verde</strong> (alta RD).<br>
+        La soglia di legge per i comuni italiani è <strong>65%</strong>.
+      </p>
+      <h3>Fonti dati</h3>
+      <ul>
+        <li><a href="https://www.catasto-rifiuti.isprambiente.it/index.php?pg=nazione" target="_blank" style="color:#e94560">ISPRA – Catasto Rifiuti</a> – Rapporto Rifiuti Urbani (dati comunali annuali)</li>
+        <li>Confini comuni: ISTAT via <a href="https://confini-amministrativi.it" target="_blank" style="color:#e94560">confini-amministrativi.it</a></li>
+        <li>PMTiles: <a href="https://gbvitrano.github.io/ANNCSU" target="_blank" style="color:#e94560">gbvitrano.github.io/ANNCSU</a></li>
+      </ul>
+      <h3>Elaborazione</h3>
+      <p>Dati elaborati da file CSV ISPRA, unione anni 2010–2024.</p>
+    </div>
+  </div>
+
+  <!-- ── SCRIPTS ── -->
+  <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pmtiles@4/dist/pmtiles.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
