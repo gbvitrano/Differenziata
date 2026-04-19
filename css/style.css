@@ -51,6 +51,12 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* Su desktop le righe si dissolvono: i figli diventano flex-item diretti */
+#header-row1,
+#header-row2 {
+  display: contents;
+}
+
 #header-brand {
   display: flex;
   flex-direction: column;
@@ -621,55 +627,66 @@ body {
 /* ── RESPONSIVE: MOBILE (≤ 640px) ───────────── */
 @media (max-width: 640px) {
 
-  /* Header: 2 righe — row1: logo|brand|actions, row2: anno|provincia */
-  :root { --header-h: 96px; }
+  :root { --header-h: 100px; }
 
+  /* Header: flex-column, 2 righe reali */
   #header {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 8px 12px;
-    gap: 6px;
-    align-content: center;
+    flex-direction: column;
+    height: var(--header-h);
+    padding: 0;
+    gap: 0;
+    align-items: stretch;
   }
 
-  /* Nasconde separatori verticali */
-  .header-sep { display: none; }
+  /* Riga 1: logo · brand · actions */
+  #header-row1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    height: 56px;
+    flex-shrink: 0;
+  }
 
-  /* Row 1 */
-  #header-logo { order: 1; }
   #header-logo img { height: 26px; }
 
-  #header-brand { order: 2; flex: 1; min-width: 0; }
-  #header-brand h1 { font-size: 13px; }
+  #header-brand { flex: 1; min-width: 0; }
+  #header-brand h1 { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #header-brand span { display: none; }
 
-  #header-actions { order: 3; flex-shrink: 0; }
   .btn-icon { width: 36px; height: 36px; font-size: 16px; }
+  #stats-bar { display: none; }
 
-  /* Row 2: anno + provincia nella stessa riga */
-  #year-control {
-    order: 10;
-    flex: 1;
-    gap: 6px;
-    min-width: 0;
+  /* Separatore riga 1 → riga 2 */
+  #header-row1 .header-sep { display: flex; }
+
+  /* Riga 2: anno · sep · provincia */
+  #header-row2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    height: 44px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
   }
-  #year-control label { font-size: 12px; }
+
+  #header-row2 .header-sep { display: flex; height: 22px; }
+
+  #year-control { flex: 1; gap: 6px; min-width: 0; }
+  #year-control label { font-size: 12px; white-space: nowrap; }
   #year-slider {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-    height: 6px; /* track più alto per touch */
+    flex: 1; width: auto; min-width: 0;
+    height: 6px;
   }
   #year-slider::-webkit-slider-thumb { width: 24px; height: 24px; }
   #year-slider::-moz-range-thumb    { width: 24px; height: 24px; }
 
-  #province-control { order: 10; flex-shrink: 0; }
+  #province-control { flex-shrink: 0; gap: 0; }
   #province-control label { display: none; }
   #province-select { font-size: 12px; padding: 5px 8px; }
 
-  #stats-bar { display: none; }
-
-  /* Mappa rispetta header a 2 righe */
+  /* Mappa */
   #map { top: var(--header-h); }
 
   /* Info panel: bottom sheet invece di pannello laterale */
