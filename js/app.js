@@ -508,6 +508,12 @@ function setupControls() {
 
   sel.addEventListener('change', () => {
     currentProvincia = sel.value;
+    // Reset comune selection
+    document.getElementById('comune-select').value = '';
+    selectedIstat = null;
+    if (map) map.setFilter('comuni-selected', ['==', 'pro_com_t', '']);
+    closeInfoPanel();
+    populateComuneSelect();
     updateMap();
     if (currentProvincia && PROVINCE_BOUNDS[currentProvincia]) {
       const [[w, s], [e, n]] = PROVINCE_BOUNDS[currentProvincia];
@@ -515,6 +521,22 @@ function setupControls() {
     } else if (!currentProvincia) {
       map.flyTo({ center: SICILIA_CENTER, zoom: SICILIA_ZOOM, duration: 800 });
     }
+  });
+
+  // Comune select
+  populateComuneSelect();
+  document.getElementById('comune-select').addEventListener('change', (e) => {
+    const istat = e.target.value;
+    if (!istat) {
+      closeInfoPanel();
+      selectedIstat = null;
+      if (map) map.setFilter('comuni-selected', ['==', 'pro_com_t', '']);
+      return;
+    }
+    const row = allData[currentAnno]?.[istat];
+    if (!row) return;
+    selectComune(istat, row);
+    zoomToComune(istat, row.provincia);
   });
 
   // Theme toggle
@@ -530,6 +552,83 @@ function setupControls() {
   document.getElementById('info-modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
   });
+}
+
+// ── COMUNE SELECT ─────────────────────────────────────────────────────────────
+
+function populateComuneSelect() {
+  const sel = document.getElementById('comune-select');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Tutti —</option>';
+
+  const annoData = allData[currentAnno] || {};
+  // Raccoglie comuni unici (usa l'anno corrente)
+  const rows = Object.values(annoData)
+    .filter(r => !currentProvincia || r.provincia === currentProvincia)
+    .sort((a, b) => a.comune.localeCompare(b.comune, 'it'));
+
+  if (!currentProvincia) {
+    // Raggruppa per provincia
+    const byProv = {};
+    rows.forEach(r => {
+      if (!byProv[r.provincia]) byProv[r.provincia] = [];
+      byProv[r.provincia].push(r);
+    });
+    Object.keys(byProv).sort().forEach(prov => {
+      const grp = document.createElement('optgroup');
+      grp.label = prov;
+      byProv[prov].forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.istat;
+        opt.textContent = r.comune;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+  } else {
+    rows.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.istat;
+      opt.textContent = r.comune;
+      sel.appendChild(opt);
+    });
+  }
+
+  // Ripristina selezione precedente se ancora valida
+  if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+function zoomToComune(istat, provincia) {
+  // Step 1: zoom alla provincia per caricare i tile
+  if (provincia && PROVINCE_BOUNDS[provincia]) {
+    const [[w, s], [e, n]] = PROVINCE_BOUNDS[provincia];
+    map.fitBounds([[w, s], [e, n]], { padding: 20, duration: 500, maxZoom: 11 });
+  }
+
+  // Step 2: dopo idle, trova la feature e fit ai suoi bounds
+  map.once('idle', () => {
+    const features = map.querySourceFeatures('comuni', {
+      sourceLayer: 'comuni',
+      filter: ['==', 'pro_com_t', istat],
+    });
+    if (!features.length) return;
+    const bounds = featureBounds(features[0]);
+    if (bounds) map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 700 });
+  });
+}
+
+function featureBounds(feature) {
+  const pts = [];
+  const collect = (arr, depth) => {
+    if (depth === 0) { pts.push(arr); return; }
+    arr.forEach(a => collect(a, depth - 1));
+  };
+  const depth = feature.geometry.type === 'Polygon' ? 2 : 3;
+  collect(feature.geometry.coordinates, depth);
+  if (!pts.length) return null;
+  const lngs = pts.map(p => p[0]);
+  const lats  = pts.map(p => p[1]);
+  return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
 }
 
 function toggleTheme() {

@@ -36,6 +36,8 @@ body {
 }
 
 /* ── HEADER ─────────────────────────────────── */
+:root { --header-h: 96px; }
+
 #header {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -44,18 +46,58 @@ body {
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 0 16px;
+  flex-direction: column;
   z-index: 200;
   box-shadow: var(--shadow);
 }
 
-/* Su desktop le righe si dissolvono: i figli diventano flex-item diretti */
-#header-row1,
-#header-row2 {
-  display: contents;
+#header-row1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: 52px;
+  flex-shrink: 0;
 }
+
+#header-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 16px;
+  height: 44px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Comune control */
+#comune-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+#comune-control label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+#comune-select {
+  width: 180px;
+  background: var(--bg-panel2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+#comune-select:focus { border-color: var(--accent); }
 
 #header-brand {
   display: flex;
@@ -620,102 +662,63 @@ body {
 /* ── RESPONSIVE: TABLET (≤ 900px) ───────────── */
 @media (max-width: 900px) {
   #stats-bar { display: none; }
-  #year-slider { width: 150px; }
+  #year-slider { width: 130px; }
   #header-brand { min-width: unset; }
 }
 
 /* ── RESPONSIVE: MOBILE (≤ 640px) ───────────── */
 @media (max-width: 640px) {
 
-  :root { --header-h: 100px; }
+  /* Header: 3 righe — row1: 48px, row2: 44px, row3: 44px */
+  :root { --header-h: 136px; }
 
-  /* Header: flex-column, 2 righe reali */
-  #header {
-    flex-direction: column;
-    height: var(--header-h);
-    padding: 0;
-    gap: 0;
-    align-items: stretch;
-  }
+  #header { height: var(--header-h); }
 
-  /* Riga 1: logo · brand · actions */
-  #header-row1 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 12px;
-    height: 56px;
-    flex-shrink: 0;
-  }
-
-  #header-logo img { height: 26px; }
-
+  /* Riga 1 */
+  #header-row1 { height: 48px; padding: 0 10px; gap: 8px; }
+  #header-logo img { height: 24px; }
   #header-brand { flex: 1; min-width: 0; }
-  #header-brand h1 { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #header-brand h1 { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #header-brand span { display: none; }
-
-  .btn-icon { width: 36px; height: 36px; font-size: 16px; }
+  #header-row1 .header-sep { display: none; }
+  .btn-icon { width: 34px; height: 34px; font-size: 15px; }
   #stats-bar { display: none; }
 
-  /* Separatore riga 1 → riga 2 */
-  #header-row1 .header-sep { display: flex; }
-
-  /* Riga 2: anno · sep · provincia */
-  #header-row2 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 12px;
-    height: 44px;
-    flex-shrink: 0;
-    border-top: 1px solid var(--border);
-  }
-
-  #header-row2 .header-sep { display: flex; height: 22px; }
-
-  #year-control { flex: 1; gap: 6px; min-width: 0; }
-  #year-control label { font-size: 12px; white-space: nowrap; }
-  #year-slider {
-    flex: 1; width: auto; min-width: 0;
-    height: 6px;
-  }
+  /* Riga 2: anno (flex) + provincia */
+  #header-row2 { height: 44px; padding: 0 10px; gap: 8px; }
+  #header-row2 .header-sep { display: none; }
+  #year-control { flex: 1; min-width: 0; gap: 6px; flex-shrink: 1; }
+  #year-control label { font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  #year-slider { flex: 1; width: auto; min-width: 0; height: 6px; }
   #year-slider::-webkit-slider-thumb { width: 24px; height: 24px; }
   #year-slider::-moz-range-thumb    { width: 24px; height: 24px; }
+  #province-control { flex-shrink: 0; gap: 4px; }
+  #province-control label { font-size: 11px; }
+  #province-select { font-size: 12px; padding: 5px 6px; max-width: 130px; }
 
-  #province-control { flex-shrink: 0; gap: 0; }
-  #province-control label { display: none; }
-  #province-select { font-size: 12px; padding: 5px 8px; }
+  /* Riga 3: comune (full width, aggiunta come terza riga) */
+  #header-row2::after { display: none; }
+  #comune-control { gap: 6px; }
+  #comune-control label { font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  #comune-select { font-size: 12px; padding: 5px 6px; }
 
   /* Mappa */
   #map { top: var(--header-h); }
 
-  /* Info panel: bottom sheet invece di pannello laterale */
+  /* Info panel: bottom sheet */
   #info-panel {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-height: 60vh;
+    top: auto; bottom: 0; left: 0; right: 0;
+    width: 100%; max-height: 60vh;
     border-radius: var(--radius) var(--radius) 0 0;
     border-bottom: none;
     padding: 20px 16px 24px;
   }
 
-  /* Bottom right: ridotto */
   #bottom-right { right: 8px; bottom: 8px; gap: 8px; }
-  #logo-bottom img { height: 40px; }
-
-  /* Legenda: altezza max per non coprire tutta la schermata */
-  #legend {
-    max-height: 38vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  #logo-bottom img { height: 38px; }
+  #legend { max-height: 35vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .legend-label { font-size: 9px; }
   .legend-swatch { width: 12px; height: 8px; }
-
-  /* Modal: quasi full screen */
   .modal-content { width: 95%; padding: 20px 14px; max-height: 85vh; }
 }
 
