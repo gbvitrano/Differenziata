@@ -86,6 +86,30 @@ const FRACTION_COLORS = [
   '#F44336','#00BCD4',
 ];
 
+const THEMATIC_OPTIONS = [
+  // Indicatori
+  { key: null,          label: '% Raccolta Differenziata', group: 'Indicatori',          color: '#e94560' },
+  { key: 'indiff',      label: 'Indifferenziato',          group: 'Indicatori',          color: '#607D8B' },
+  { key: 'totaleRU',    label: 'Tot. rifiuti urbani',      group: 'Indicatori',          color: '#FF5722' },
+  { key: 'totaleRD',    label: 'Tot. raccolta diff.',      group: 'Indicatori',          color: '#43A047' },
+  // Frazioni principali
+  { key: 'umido',       label: 'Umido',                    group: 'Frazioni principali', color: '#8B5E3C' },
+  { key: 'carta',       label: 'Carta e cartone',          group: 'Frazioni principali', color: '#2196F3' },
+  { key: 'vetro',       label: 'Vetro',                    group: 'Frazioni principali', color: '#26A69A' },
+  { key: 'plastica',    label: 'Plastica',                 group: 'Frazioni principali', color: '#FF7043' },
+  { key: 'raee',        label: 'RAEE',                     group: 'Frazioni principali', color: '#9C27B0' },
+  { key: 'verde',       label: 'Verde (organico)',         group: 'Frazioni principali', color: '#7CB342' },
+  { key: 'metallo',     label: 'Metallo',                  group: 'Frazioni principali', color: '#78909C' },
+  // Frazioni minori
+  { key: 'legno',       label: 'Legno',                    group: 'Frazioni minori',     color: '#A5673F' },
+  { key: 'tessili',     label: 'Tessili',                  group: 'Frazioni minori',     color: '#E91E63' },
+  { key: 'selettiva',   label: 'Selettiva',                group: 'Frazioni minori',     color: '#FF9800' },
+  { key: 'rifCeD',      label: 'Rif. C e D',               group: 'Frazioni minori',     color: '#795548' },
+  { key: 'pulizia',     label: 'Pulizia stradale',         group: 'Frazioni minori',     color: '#00BCD4' },
+  { key: 'ingombrMisti',label: 'Ingombranti misti',        group: 'Frazioni minori',     color: '#F44336' },
+  { key: 'altro',       label: 'Altro',                    group: 'Frazioni minori',     color: '#90A4AE' },
+];
+
 // ── STATE ─────────────────────────────────────────────────────────────────────
 
 let map;
@@ -97,6 +121,8 @@ let hoveredId   = null;
 let selectedIstat = null;
 let trendChart  = null;
 let fractionChart = null;
+let currentThematic = null; // null = % RD default, string = fraction key
+let thematicScale   = null; // { breaks, colors, opt } computed per anno
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 
@@ -223,6 +249,7 @@ function initMap() {
 
   map.addControl(new maplibregl.NavigationControl(), 'top-left');
   map.addControl(new DataTableControl(), 'top-left');
+  map.addControl(new ThematicControl(), 'top-left');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
   map.on('load', () => {
@@ -319,15 +346,27 @@ function setupMapInteractions() {
     map.setFilter('comuni-hover', ['==', 'pro_com_t', istat]);
     map.getCanvas().style.cursor = 'pointer';
 
-    const pctStr = row.percentuale !== null
-      ? `<span class="tooltip-pct" style="color:${pctToColor(row.percentuale)}">${formatPct(row.percentuale)}%</span>`
-      : '<span class="tooltip-sub">dato n.d.</span>';
+    let mainHtml;
+    if (currentThematic) {
+      const opt  = THEMATIC_OPTIONS.find(o => o.key === currentThematic);
+      const frac = row.frazioni?.[currentThematic];
+      const pop  = row.popolazione;
+      const kgab = (frac !== null && frac !== undefined && pop > 0)
+        ? (frac / pop * 1000).toFixed(1) + ' kg/ab' : 'n.d.';
+      const pctNote = row.percentuale !== null ? `<div class="tooltip-sub">RD: ${formatPct(row.percentuale)}%</div>` : '';
+      mainHtml = `<span class="tooltip-pct" style="color:${opt.color}">${kgab}</span>
+        <div class="tooltip-sub">${opt.label} ${currentAnno}</div>${pctNote}`;
+    } else {
+      const pctStr = row.percentuale !== null
+        ? `<span class="tooltip-pct" style="color:${pctToColor(row.percentuale)}">${formatPct(row.percentuale)}%</span>`
+        : '<span class="tooltip-sub">dato n.d.</span>';
+      mainHtml = `${pctStr}<div class="tooltip-sub">RD ${currentAnno}</div>`;
+    }
 
     tooltip.setLngLat(e.lngLat).setHTML(`
       <div class="tooltip-name">${row.comune}</div>
       <div class="tooltip-sub">${row.provincia}</div>
-      ${pctStr}
-      <div class="tooltip-sub">RD ${currentAnno}</div>
+      ${mainHtml}
     `).addTo(map);
   });
 
@@ -384,7 +423,64 @@ function buildColorExpression() {
 
 function updateMap() {
   if (!map.isStyleLoaded()) return;
-  map.setPaintProperty('comuni-fill', 'fill-color', buildColorExpression());
+  const expr = currentThematic
+    ? buildThematicColorExpression(currentThematic)
+    : buildColorExpression();
+  map.setPaintProperty('comuni-fill', 'fill-color', expr);
+  buildLegend();
+}
+
+function buildSequentialScale(hexColor, steps) {
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  // In dark mode usa una base più scura per evitare bin quasi-bianchi invisibili
+  const isDark = document.body.dataset.theme !== 'light';
+  const base   = isDark ? 55 : 235;
+  return Array.from({ length: steps }, (_, i) => {
+    const t = (i + 1) / steps;
+    return `rgb(${Math.round(r * t + base * (1 - t))},${Math.round(g * t + base * (1 - t))},${Math.round(b * t + base * (1 - t))})`;
+  });
+}
+
+function buildThematicColorExpression(fractionKey) {
+  const annoData = allData[currentAnno] || {};
+  const opt = THEMATIC_OPTIONS.find(o => o.key === fractionKey);
+
+  const istatVals = {};
+  for (const [istat, row] of Object.entries(annoData)) {
+    const frac = row.frazioni?.[fractionKey];
+    const pop  = row.popolazione;
+    if (frac !== null && frac !== undefined && frac > 0 && pop > 0) {
+      istatVals[istat] = frac / pop * 1000;
+    }
+  }
+
+  const sorted = Object.values(istatVals).sort((a, b) => a - b);
+  if (!sorted.length) return buildColorExpression();
+
+  const nBins = 5;
+  const breaks = [1, 2, 3, 4].map(i => sorted[Math.min(Math.floor(i / nBins * sorted.length), sorted.length - 1)]);
+  const colors = buildSequentialScale(opt?.color || '#e94560', nBins);
+  thematicScale = { breaks, colors, opt };
+
+  const matchExpr = ['match', ['get', 'pro_com_t']];
+  for (const [istat, row] of Object.entries(annoData)) {
+    if (currentProvincia && row.provincia !== currentProvincia) {
+      matchExpr.push(istat, 'rgba(80,80,100,0.15)');
+      continue;
+    }
+    const val = istatVals[istat];
+    if (val === undefined) {
+      matchExpr.push(istat, NO_DATA_COLOR);
+    } else {
+      let idx = 0;
+      for (let i = 0; i < breaks.length; i++) { if (val >= breaks[i]) idx = i + 1; }
+      matchExpr.push(istat, colors[idx]);
+    }
+  }
+  matchExpr.push('rgba(0,0,0,0)');
+  return matchExpr;
 }
 
 // ── INFO PANEL ────────────────────────────────────────────────────────────────
@@ -613,12 +709,36 @@ function renderFractionChart(row) {
 
 function buildLegend() {
   const container = document.getElementById('legend-scale');
+  const titleEl   = document.getElementById('legend-title');
   container.innerHTML = '';
+
+  if (currentThematic && thematicScale) {
+    const { breaks, colors, opt } = thematicScale;
+    titleEl.textContent = `${opt.label} · kg/ab`;
+    const labels = [
+      `0 – ${breaks[0].toFixed(1)}`,
+      `${breaks[0].toFixed(1)} – ${breaks[1].toFixed(1)}`,
+      `${breaks[1].toFixed(1)} – ${breaks[2].toFixed(1)}`,
+      `${breaks[2].toFixed(1)} – ${breaks[3].toFixed(1)}`,
+      `> ${breaks[3].toFixed(1)}`,
+    ];
+    colors.forEach((color, i) => {
+      const row = document.createElement('div');
+      row.className = 'legend-row';
+      row.innerHTML = `<div class="legend-swatch" style="background:${color}"></div>
+        <span class="legend-label">${labels[i]} kg/ab</span>`;
+      container.appendChild(row);
+    });
+    document.getElementById('legend-no-data').style.display = 'flex';
+    return;
+  }
+
+  titleEl.textContent = '% Raccolta Differenziata';
+  document.getElementById('legend-no-data').style.display = '';
 
   COLOR_STEPS.forEach(([max, color], i) => {
     const min = i === 0 ? 0 : COLOR_STEPS[i - 1][0];
-    const isTarget = min === 60; // step che include il 65%
-
+    const isTarget = min === 60;
     const row = document.createElement('div');
     row.className = 'legend-row' + (isTarget ? ' legend-65' : '');
     row.innerHTML = `
@@ -714,6 +834,7 @@ function setupControls() {
   });
 
   setupDataTable();
+  setupThematicPanel();
 }
 
 // ── COMUNE SELECT ─────────────────────────────────────────────────────────────
@@ -928,6 +1049,123 @@ class DataTableControl {
     return this._container;
   }
   onRemove() { this._container.parentNode?.removeChild(this._container); }
+}
+
+class ThematicControl {
+  onAdd() {
+    this._container = document.createElement('div');
+    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const btn = document.createElement('button');
+    btn.id    = 'btn-thematic';
+    btn.title = 'Layer tematici';
+    btn.className = 'dm-map-btn';
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+      <polyline points="2 17 12 22 22 17"/>
+      <polyline points="2 12 12 17 22 12"/>
+    </svg>`;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleThematicPanel(); });
+    this._container.appendChild(btn);
+    return this._container;
+  }
+  onRemove() { this._container.parentNode?.removeChild(this._container); }
+}
+
+function toggleThematicPanel() {
+  const panel = document.getElementById('thematic-panel');
+  const isHidden = panel.classList.toggle('hidden');
+  if (!isHidden) {
+    // apre il pannello con il dropdown già visibile
+    document.getElementById('thematic-dropdown').classList.remove('hidden');
+    document.getElementById('thematic-chevron').textContent = '▴';
+  }
+}
+
+function setupThematicPanel() {
+  renderThematicList('');
+
+  document.getElementById('thematic-select-row').addEventListener('click', () => {
+    const dd  = document.getElementById('thematic-dropdown');
+    const chv = document.getElementById('thematic-chevron');
+    const open = dd.classList.toggle('hidden');
+    chv.textContent = open ? '▾' : '▴';
+  });
+
+  document.getElementById('thematic-search').addEventListener('input', (e) => {
+    renderThematicList(e.target.value.trim().toLowerCase());
+  });
+
+  document.getElementById('thematic-panel-close').addEventListener('click', () => {
+    document.getElementById('thematic-panel').classList.add('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('thematic-panel');
+    const ctrl  = document.getElementById('btn-thematic');
+    if (!panel || panel.classList.contains('hidden')) return;
+    if (!panel.contains(e.target) && !ctrl?.closest('.maplibregl-ctrl').contains(e.target)) {
+      panel.classList.add('hidden');
+    }
+  });
+}
+
+function renderThematicList(query) {
+  const list = document.getElementById('thematic-list');
+  list.innerHTML = '';
+
+  const groups = [];
+  const seen   = new Set();
+  THEMATIC_OPTIONS.forEach(o => { if (!seen.has(o.group)) { seen.add(o.group); groups.push(o.group); } });
+
+  groups.forEach(group => {
+    const opts = THEMATIC_OPTIONS.filter(o =>
+      o.group === group && (!query || o.label.toLowerCase().includes(query))
+    );
+    if (!opts.length) return;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'thematic-group-hdr';
+    hdr.textContent = group.toUpperCase();
+    list.appendChild(hdr);
+
+    opts.forEach(opt => {
+      const row = document.createElement('button');
+      row.className = 'thematic-list-item' + (currentThematic === opt.key ? ' active' : '');
+      row.dataset.key = opt.key ?? '__pct__';
+      const unit = opt.key ? 'kg/ab' : '%';
+      row.innerHTML = `
+        <span class="thematic-dot" style="background:${opt.color}"></span>
+        <span class="thematic-item-label">${opt.label}</span>
+        <span class="thematic-item-unit">${unit}</span>`;
+      row.addEventListener('click', (e) => {
+        e.stopPropagation(); // evita che il click bubbli al document-close handler
+        currentThematic = opt.key;
+        thematicScale   = null;
+        updateMap();
+        updateThematicPanel();
+      });
+      list.appendChild(row);
+    });
+  });
+
+  if (!list.children.length) {
+    list.innerHTML = '<div class="thematic-empty">Nessun risultato</div>';
+  }
+}
+
+function updateThematicPanel() {
+  // Aggiorna solo la classe active senza ricostruire il DOM
+  document.querySelectorAll('.thematic-list-item').forEach(btn => {
+    const key = btn.dataset.key === '__pct__' ? null : btn.dataset.key;
+    btn.classList.toggle('active', key === currentThematic);
+  });
+
+  const opt = THEMATIC_OPTIONS.find(o => o.key === currentThematic);
+  const lbl = document.getElementById('thematic-current-label');
+  if (lbl) lbl.textContent = opt ? opt.label : 'Seleziona indicatore…';
+
+  const btnThematic = document.getElementById('btn-thematic');
+  if (btnThematic) btnThematic.style.color = opt && currentThematic !== null ? opt.color : '';
 }
 
 // ── DATA TABLE ────────────────────────────────────────────────────────────────
