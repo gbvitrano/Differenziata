@@ -6,21 +6,6 @@ Mappa interattiva della percentuale di raccolta differenziata dei rifiuti urbani
 
 ---
 
-## Demo
-
-Apri `index.html` con un server locale:
-
-```bash
-cd Differenziata
-python -m http.server 8080
-```
-
-Poi vai su [http://localhost:8080](http://localhost:8080)
-
-> ⚠️ Non aprire direttamente con `file://`: il browser blocca `fetch()` su file locali.
-
----
-
 ## Funzionalità
 
 - **Mappa coropletica** dei comuni siciliani colorati per % di raccolta differenziata
