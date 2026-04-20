@@ -93,6 +93,20 @@ Fonte originale: ISTAT via [confini-amministrativi.it](https://confini-amministr
 
 ---
 
+## Difetto strutturale dei dati ISPRA
+
+Ci sono colonne senza intestazione e i dati sono completamente sfasati.
+
+Il difetto è strutturale: i file sorgente ISPRA usano la virgola come separatore decimale (formato italiano), ma i valori numerici non sono racchiusi tra virgolette. 
+
+Quando il file viene letto come CSV, ogni numero decimale come 139,95 viene spezzato in due campi distinti (139 e 95), moltiplicando il numero di colonne.
+
+Il risultato è che le 25 intestazioni vengono mappate in modo completamente sbagliato:
+IntestazioneValore lettoValore realeFrazione umida (t)139139,95 tVerde (t)95 ← (sbagliato!)32,911 tCarta e cartone (t)32 ← (sbagliato!)137,185 tTotale RU (t)560 ← (sbagliato!)1048,927 tPercentuale RD (%)0 ← (sbagliato!)4,00%
+
+In pratica, tutte le colonne numeriche sono sfasate di un numero crescente di posizioni, e i valori reali si trovano in 18 colonne "fantasma" senza intestazione.
+
+
 ## Elaborazione dati
 
 ### 1. Unione CSV ISPRA → `sicilia.csv`
