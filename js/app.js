@@ -38,16 +38,20 @@ const SICILIA_CENTER  = [14.0, 37.6];
 const SICILIA_ZOOM    = 7.2;
 
 // Province bounding boxes [sw, ne]
+// Note: Agrigento esclude Lampedusa e Linosa (35.5°N) perché la distanza dal
+//       territorio continentale renderebbe il zoom inutilizzabile; Trapani
+//       esclude Pantelleria per la stessa ragione. Ustica (PA) e le Isole
+//       Eolie (ME) sono incluse perché abbastanza vicine al territorio principale.
 const PROVINCE_BOUNDS = {
-  'Trapani':       [[12.23, 37.56], [13.08, 38.22]],
-  'Palermo':       [[12.95, 37.58], [14.15, 38.25]],
-  'Messina':       [[14.33, 37.83], [15.66, 38.30]],
-  'Agrigento':     [[12.88, 37.07], [13.88, 37.68]],
-  'Caltanissetta': [[13.70, 37.28], [14.40, 37.70]],
-  'Enna':          [[14.08, 37.44], [14.75, 37.96]],
-  'Catania':       [[14.49, 37.18], [15.32, 37.88]],
-  'Ragusa':        [[14.32, 36.68], [14.92, 37.12]],
-  'Siracusa':      [[14.88, 36.63], [15.55, 37.30]],
+  'Trapani':       [[12.20, 37.54], [13.12, 38.24]],  // include Favignana/Egadi
+  'Palermo':       [[12.95, 37.55], [14.18, 38.85]],  // include Ustica (38.72°N)
+  'Messina':       [[14.28, 37.79], [15.68, 38.82]],  // include Isole Eolie (38.8°N)
+  'Agrigento':     [[12.38, 37.07], [14.06, 37.70]],  // solo terraferma + isole vicine
+  'Caltanissetta': [[13.62, 37.01], [14.46, 37.75]],  // corretto: include Gela/Butera/Niscemi (S=37.07)
+  'Enna':          [[14.07, 37.32], [14.96, 37.87]],  // corretto: include Catenanuova (E=14.89)
+  'Catania':       [[14.47, 37.14], [15.34, 37.90]],
+  'Ragusa':        [[14.28, 36.66], [15.00, 37.14]],
+  'Siracusa':      [[14.85, 36.62], [15.57, 37.35]],
 };
 
 const YEARS = ['2010','2011','2012','2013','2014','2015',
@@ -391,6 +395,33 @@ function selectComune(istat, row) {
   selectedIstat = istat;
   map.setFilter('comuni-selected', ['==', 'pro_com_t', istat]);
   showInfoPanel(istat, row);
+}
+
+// ── RESPONSIVE PADDING ────────────────────────────────────────────────────────
+
+/**
+ * Calcola il padding per fitBounds in modo responsivo:
+ * - Base: ~10% della dimensione minore del container mappa (clamp 40–120 px)
+ * - Se il pannello info è aperto a destra, aggiunge extraRight pari alla sua larghezza
+ *   (il pannello è flex-sibling del map, quindi il canvas è già ridotto;
+ *    il padding extra serve solo per non toccare i bordi del canvas residuo)
+ */
+function getResponsivePadding({ extraVertical = 0, extraLeft = 0, extraRight = 0 } = {}) {
+  const container = map.getContainer();
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  // 10% della dimensione minore, clampato tra 40 e 120 px
+  const base = Math.max(40, Math.min(120, Math.round(Math.min(w, h) * 0.10)));
+  // Se il pannello info è visibile, aggiunge padding destro per non
+  // finire sotto il suo bordo (già tolto dal canvas, ma meglio lasciare spazio)
+  const infoPanelOpen = !document.getElementById('info-panel')?.classList.contains('hidden');
+  const rightBonus    = infoPanelOpen ? 20 : 0;
+  return {
+    top:    base + extraVertical,
+    bottom: base + extraVertical,
+    left:   base + extraLeft,
+    right:  base + rightBonus + extraRight,
+  };
 }
 
 // ── COLOR LOGIC ───────────────────────────────────────────────────────────────
@@ -794,9 +825,22 @@ function setupControls() {
     updateMap();
     if (currentProvincia && PROVINCE_BOUNDS[currentProvincia]) {
       const [[w, s], [e, n]] = PROVINCE_BOUNDS[currentProvincia];
-      map.fitBounds([[w, s], [e, n]], { padding: 40, duration: 800 });
+      map.fitBounds([[w, s], [e, n]], { padding: getResponsivePadding(), duration: 800 });
+      // Avviso per province con isole lontane escluse dal zoom
+      const islandNote = { 'Agrigento': 'Lampedusa e Linosa', 'Trapani': 'Pantelleria' };
+      const noteEl = document.getElementById('island-note');
+      if (noteEl) {
+        if (islandNote[currentProvincia]) {
+          noteEl.textContent = `⚠ ${islandNote[currentProvincia]} non visibile a questo zoom`;
+          noteEl.classList.remove('hidden');
+        } else {
+          noteEl.classList.add('hidden');
+        }
+      }
     } else if (!currentProvincia) {
       map.flyTo({ center: SICILIA_CENTER, zoom: SICILIA_ZOOM, duration: 800 });
+      const noteEl = document.getElementById('island-note');
+      if (noteEl) noteEl.classList.add('hidden');
     }
   });
 
@@ -909,7 +953,11 @@ function zoomToComune(istat, provincia) {
   // Step 1: zoom alla provincia per caricare i tile
   if (provincia && PROVINCE_BOUNDS[provincia]) {
     const [[w, s], [e, n]] = PROVINCE_BOUNDS[provincia];
-    map.fitBounds([[w, s], [e, n]], { padding: 20, duration: 500, maxZoom: 11 });
+    map.fitBounds([[w, s], [e, n]], {
+      padding: getResponsivePadding(),
+      duration: 500,
+      maxZoom: 11,
+    });
   }
 
   // Step 2: dopo idle, trova la feature e fit ai suoi bounds
@@ -920,7 +968,11 @@ function zoomToComune(istat, provincia) {
     });
     if (!features.length) return;
     const bounds = featureBounds(features[0]);
-    if (bounds) map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 700 });
+    if (bounds) map.fitBounds(bounds, {
+      padding: getResponsivePadding(),
+      maxZoom: 13,
+      duration: 700,
+    });
   });
 }
 
