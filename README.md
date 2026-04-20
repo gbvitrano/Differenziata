@@ -6,21 +6,6 @@ Mappa interattiva della percentuale di raccolta differenziata dei rifiuti urbani
 
 ---
 
-## Demo
-
-Apri `index.html` con un server locale:
-
-```bash
-cd Differenziata
-python -m http.server 8080
-```
-
-Poi vai su [http://localhost:8080](http://localhost:8080)
-
-> ⚠️ Non aprire direttamente con `file://`: il browser blocca `fetch()` su file locali.
-
----
-
 ## Funzionalità
 
 - **Mappa coropletica** dei comuni siciliani colorati per % di raccolta differenziata
@@ -131,3 +116,7 @@ Il codice sorgente è rilasciato sotto licenza [MIT](https://opensource.org/lice
 - Confini comunali: [ISTAT](https://www.istat.it/) via [confini-amministrativi.it](https://confini-amministrativi.it)
 - PMTiles comuni: [gbvitrano/ANNCSU](https://github.com/gbvitrano/ANNCSU)
 - Basemap: © [OpenStreetMap](https://www.openstreetmap.org/) contributors, © [CARTO](https://carto.com/)
+
+---
+## [Mappa](https://gbvitrano.github.io/Differenziata/)
+<img width="1920" height="1200" alt="social_card" src="https://github.com/user-attachments/assets/62a28394-92f0-4788-893e-6ee05cf3473a" />
