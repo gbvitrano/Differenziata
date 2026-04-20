@@ -144,52 +144,53 @@ async function loadData() {
 }
 
 function parseCSV(text) {
+  // Nuovo formato sicilia.csv: decimali con punto, 26 colonne fisse
+  // anno(0), IstatComune(1), Regione(2), Provincia(3), Comune(4),
+  // Popolazione(5), Dato riferito a(6),
+  // frazioni [7..24]:  umido verde carta vetro legno metallo plastica raee
+  //                    tessili selettiva rifCeD pulizia ingombrMisti altro
+  //                    totaleRD ingombrSmalt indiff totaleRU
+  // Percentuale RD %(25) — intero troncato; si usa solo come fallback
+  const FRAC_START = 7;  // indice prima colonna numerica
+  const PCT_IDX    = 25; // indice colonna Percentuale RD (%)
+
+  const parseFrac = v => {
+    const t = (v || '').trim();
+    if (t === '-' || t === '') return null;
+    const n = parseFloat(t);
+    return isNaN(n) ? null : n;
+  };
+
   const lines = text.split('\n');
-  // skip header (line 0)
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = lines[i].trim().replace(/^\uFEFF/, '');
     if (!line) continue;
 
-    const pctMatch = line.match(/"(\d+),(\d+)%"|"(\d+)%"/);
-    let pct = null;
-    if (pctMatch) {
-      pct = pctMatch[3]
-        ? parseFloat(pctMatch[3])
-        : parseFloat(pctMatch[1] + '.' + pctMatch[2]);
-    }
-
     const parts = line.split(',');
-    if (parts.length < 7) continue;
+    if (parts.length < PCT_IDX) continue;
 
-    // Find the quoted % field index
-    const pctIdx = parts.findIndex(p => p.trim().startsWith('"'));
-
-    // Parse 18 fraction columns using smart int,dec pairing
-    // Each numeric value = 2 CSV fields (int + dec), null '-' = 1 field
+    // Frazioni: 18 valori da indice 7 a 24
     const fractions = {};
-    let pos = 7;
-    for (const key of FRACTION_KEYS) {
-      if (pctIdx > 0 && pos >= pctIdx - 1) { fractions[key] = null; continue; }
-      const val = (parts[pos] || '').trim();
-      if (val === '-' || val === '') {
-        fractions[key] = null;
-        pos += 1;
-      } else {
-        const dec = (parts[pos + 1] || '0').trim();
-        fractions[key] = parseFloat(val + '.' + dec);
-        pos += 2;
-      }
-    }
+    FRACTION_KEYS.forEach((key, idx) => {
+      fractions[key] = parseFrac(parts[FRAC_START + idx]);
+    });
+
+    // Percentuale RD: calcolata da TotRD/TotRU (più precisa dell'intero del file)
+    const rd = fractions.totaleRD;
+    const ru = fractions.totaleRU;
+    const pct = (rd !== null && ru !== null && ru > 0)
+      ? rd / ru * 100
+      : parseFrac(parts[PCT_IDX]);
 
     const row = {
-      anno:        parts[0].trim(),
+      anno:        parts[0].trim().replace(/^\uFEFF/, ''),
       istat:       parts[1].trim().padStart(6, '0'),
       regione:     parts[2].trim(),
       provincia:   parts[3].trim(),
       comune:      parts[4].trim(),
       popolazione: parseInt(parts[5]) || 0,
       dato:        parts[6].trim(),
-      percentuale: pct,
+      percentuale: (pct !== null && !isNaN(pct)) ? pct : null,
       frazioni:    fractions,
     };
 
