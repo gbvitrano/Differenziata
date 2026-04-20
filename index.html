@@ -94,6 +94,7 @@
         </div>
         <div class="header-sep"></div>
         <div id="header-actions">
+          <button class="btn-icon" id="btn-analisi" title="Analisi 2010-2024">📊</button>
           <button class="btn-icon" id="btn-theme" title="Cambia tema">🌙</button>
           <button class="btn-icon" id="btn-info" title="Informazioni">ℹ</button>
         </div>
@@ -239,6 +240,234 @@
 	  
 	  
 	  
+    </div>
+  </div>
+
+  <!-- ── ANALISI MODAL ── -->
+  <div id="analisi-modal" class="modal hidden">
+    <div class="modal-content modal-content-wide">
+      <button class="modal-close" id="analisi-close">✕</button>
+
+      <header class="an-hero">
+        <h2>Raccolta differenziata in Sicilia 2010-2024</h2>
+        <p class="an-subtitle">Cosa raccontano davvero i dati ISPRA su 391 comuni e 15 anni</p>
+        <a class="an-pdf-btn" href="doc/post-analisi-2010-2024.pdf" target="_blank" rel="noopener" title="Scarica l'analisi integrale in PDF">
+          <span>📄</span> Scarica analisi integrale (PDF)
+        </a>
+      </header>
+
+      <div class="an-kpis">
+        <div class="an-kpi">
+          <span class="an-kpi-value">55,5%</span>
+          <span class="an-kpi-label">% RD Sicilia 2024</span>
+          <span class="an-kpi-delta">era 9,4% nel 2010 (×5,9)</span>
+        </div>
+        <div class="an-kpi">
+          <span class="an-kpi-value">296 / 391</span>
+          <span class="an-kpi-label">Comuni ≥ 65% nel 2024</span>
+          <span class="an-kpi-delta">erano solo 1 nel 2010</span>
+        </div>
+        <div class="an-kpi">
+          <span class="an-kpi-value">−59%</span>
+          <span class="an-kpi-label">Indifferenziato 2010→2024</span>
+          <span class="an-kpi-delta">da 2,36 Mt a 0,96 Mt</span>
+        </div>
+        <div class="an-kpi">
+          <span class="an-kpi-value">5 / 9</span>
+          <span class="an-kpi-label">Province sopra soglia 65%</span>
+          <span class="an-kpi-delta">Trapani 77,0% · Palermo 36,9%</span>
+        </div>
+      </div>
+
+      <section class="an-section">
+        <h3>Il dato che riassume tutto: dal 9% al 55%</h3>
+        <p>
+          Nel 2010 la Sicilia raccoglieva in modo differenziato meno del <strong>10%</strong> dei
+          rifiuti urbani. Nel 2024 la quota è arrivata al <strong>55,5%</strong>: in quindici anni
+          il rapporto si è quasi sestuplicato e l'indifferenziato avviato a smaltimento è
+          <strong>sceso del 59%</strong>.
+        </p>
+        <figure class="an-figure">
+          <img src="img/post-analisi/01_trend_regionale.png" alt="Andamento RD Sicilia 2010-2024" loading="lazy">
+          <figcaption>Andamento della % di raccolta differenziata in Sicilia, dato regionale aggregato.</figcaption>
+        </figure>
+        <div class="an-table-wrap">
+          <table class="an-table">
+            <thead>
+              <tr><th>Anno</th><th>Popolazione</th><th>Totale RU (t)</th><th>Totale RD (t)</th><th>% RD</th><th>RU pro-capite (kg/ab)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>2010</td><td>5.051.075</td><td>2.611.345</td><td>246.464</td><td><strong>9,4%</strong></td><td>517</td></tr>
+              <tr><td>2014</td><td>5.094.937</td><td>2.398.220</td><td>296.018</td><td><strong>12,3%</strong></td><td>471</td></tr>
+              <tr><td>2017</td><td>5.026.989</td><td>2.310.923</td><td>491.617</td><td><strong>21,3%</strong></td><td>460</td></tr>
+              <tr><td>2020</td><td>4.840.876</td><td>2.151.948</td><td>909.544</td><td><strong>42,3%</strong></td><td>445</td></tr>
+              <tr><td>2022</td><td>4.802.016</td><td>2.200.836</td><td>1.132.434</td><td><strong>51,5%</strong></td><td>458</td></tr>
+              <tr><td>2024</td><td>4.779.371</td><td>2.168.241</td><td>1.203.679</td><td><strong>55,5%</strong></td><td>454</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="an-section">
+        <h3>La soglia del 65%: vicina ma non raggiunta</h3>
+        <p>
+          La legge italiana fissa al <strong>65%</strong> il livello minimo di raccolta differenziata
+          per ogni comune. Nel 2010 la rispettava un solo comune; nel 2024 sono <strong>296 su 391</strong>
+          (75,7%). Il salto del 2018 e quello del 2021 coincidono con i piani di efficientamento delle
+          SRR e con le penalità sull'avvio in discarica dell'indifferenziato.
+        </p>
+        <figure class="an-figure">
+          <img src="img/post-analisi/06_share_above_65.png" alt="% comuni sopra il 65%" loading="lazy">
+          <figcaption>Quota di comuni siciliani che rispettano la soglia di legge.</figcaption>
+        </figure>
+        <div class="an-table-wrap">
+          <table class="an-table">
+            <thead><tr><th>Anno</th><th>Comuni totali</th><th>Comuni ≥ 65%</th><th>% in regola</th></tr></thead>
+            <tbody>
+              <tr><td>2010</td><td>388</td><td>1</td><td>0,3%</td></tr>
+              <tr><td>2014</td><td>313</td><td>3</td><td>1,0%</td></tr>
+              <tr><td>2017</td><td>389</td><td>27</td><td>6,9%</td></tr>
+              <tr><td>2018</td><td>375</td><td>71</td><td>18,9%</td></tr>
+              <tr><td>2020</td><td>378</td><td>152</td><td>40,2%</td></tr>
+              <tr><td>2022</td><td>363</td><td>233</td><td>64,2%</td></tr>
+              <tr><td>2024</td><td>391</td><td>296</td><td><strong>75,7%</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="an-section">
+        <h3>La geografia: nove province, due Sicilie</h3>
+        <p>
+          Cinque province su nove superano oggi la soglia di legge. Il dato di Palermo
+          merita una sottolineatura: pesa per quasi un terzo dei rifiuti dell'isola ed è il più
+          indietro. <strong>Senza Palermo, la Sicilia nel 2024 sarebbe a circa il 62%.</strong>
+        </p>
+        <figure class="an-figure">
+          <img src="img/post-analisi/03_province_2024.png" alt="Province Sicilia 2024" loading="lazy">
+          <figcaption>Ranking delle nove province siciliane nel 2024.</figcaption>
+        </figure>
+        <div class="an-table-wrap">
+          <table class="an-table">
+            <thead><tr><th>Provincia</th><th>% RD 2024</th><th>Stato</th></tr></thead>
+            <tbody>
+              <tr><td>Trapani</td><td><strong>77,0%</strong></td><td>🟢 Oltre la soglia</td></tr>
+              <tr><td>Ragusa</td><td><strong>68,7%</strong></td><td>🟢 Oltre la soglia</td></tr>
+              <tr><td>Caltanissetta</td><td><strong>66,4%</strong></td><td>🟢 Oltre la soglia</td></tr>
+              <tr><td>Enna</td><td><strong>66,3%</strong></td><td>🟢 Oltre la soglia</td></tr>
+              <tr><td>Messina</td><td><strong>65,6%</strong></td><td>🟢 Appena oltre</td></tr>
+              <tr><td>Agrigento</td><td>59,9%</td><td>🟡 Sotto la soglia</td></tr>
+              <tr><td>Catania</td><td>55,4%</td><td>🟡 Sotto la soglia</td></tr>
+              <tr><td>Siracusa</td><td>54,1%</td><td>🟡 Sotto la soglia</td></tr>
+              <tr><td>Palermo</td><td><strong>36,9%</strong></td><td>🔴 Molto sotto</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figure class="an-figure">
+          <img src="img/post-analisi/02_trend_province.png" alt="Andamento per provincia" loading="lazy">
+          <figcaption>Andamento storico per provincia: Trapani in testa, Palermo in coda.</figcaption>
+        </figure>
+      </section>
+
+      <section class="an-section">
+        <h3>Cosa raccoglie davvero la Sicilia</h3>
+        <p>
+          Le 1,2 milioni di tonnellate raccolte separatamente nel 2024 sono dominate dall'<strong>organico</strong>
+          (39%), seguito da carta e cartone (20%), vetro (12%) e plastica (9%).
+        </p>
+        <figure class="an-figure">
+          <img src="img/post-analisi/04_composizione_2024.png" alt="Composizione RD 2024" loading="lazy">
+          <figcaption>Composizione della raccolta differenziata regionale per frazione, 2024.</figcaption>
+        </figure>
+        <div class="an-table-wrap">
+          <table class="an-table">
+            <thead><tr><th>Frazione</th><th>Tonnellate 2024</th><th>Quota su RD</th></tr></thead>
+            <tbody>
+              <tr><td>Frazione umida (organico)</td><td>469.004</td><td><strong>39,0%</strong></td></tr>
+              <tr><td>Carta e cartone</td><td>240.641</td><td>20,0%</td></tr>
+              <tr><td>Vetro</td><td>149.000</td><td>12,4%</td></tr>
+              <tr><td>Plastica</td><td>107.195</td><td>8,9%</td></tr>
+              <tr><td>Ingombranti a recupero</td><td>54.050</td><td>4,5%</td></tr>
+              <tr><td>Verde</td><td>51.401</td><td>4,3%</td></tr>
+              <tr><td>Legno</td><td>37.809</td><td>3,1%</td></tr>
+              <tr><td>Pulizia stradale</td><td>27.053</td><td>2,2%</td></tr>
+              <tr><td>Rifiuti C&amp;D</td><td>19.527</td><td>1,6%</td></tr>
+              <tr><td>RAEE</td><td>15.820</td><td>1,3%</td></tr>
+              <tr><td>Altro</td><td>14.116</td><td>1,2%</td></tr>
+              <tr><td>Tessili</td><td>9.572</td><td>0,8%</td></tr>
+              <tr><td>Metallo</td><td>7.243</td><td>0,6%</td></tr>
+              <tr><td>Selettiva</td><td>1.402</td><td>0,1%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="an-section">
+        <h3>I comuni virtuosi e quelli in difficoltà</h3>
+        <p>
+          Considerando solo i comuni con almeno <strong>5.000 abitanti</strong>, il primo posto va a
+          <strong>San Giuseppe Jato (94,0%)</strong>. Sorpresa: <strong>sei dei dieci più virtuosi sono
+          in provincia di Palermo</strong> — la stessa provincia col dato medio peggiore. Il problema
+          non è territoriale ma di scala: i grandi capoluoghi pesano e abbassano la media.
+        </p>
+        <figure class="an-figure">
+          <img src="img/post-analisi/05_top_bottom.png" alt="Top e bottom comuni 2024" loading="lazy">
+          <figcaption>Top 10 e bottom 10 comuni con più di 5.000 abitanti, anno 2024.</figcaption>
+        </figure>
+        <div class="an-tables-2col">
+          <div class="an-table-wrap">
+            <h4>Top 10 — i più virtuosi</h4>
+            <table class="an-table">
+              <thead><tr><th>#</th><th>Comune</th><th>Prov.</th><th>% RD</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>San Giuseppe Jato</td><td>PA</td><td><strong>94,0%</strong></td></tr>
+                <tr><td>2</td><td>Cinisi</td><td>PA</td><td>89,1%</td></tr>
+                <tr><td>3</td><td>Santa Venerina</td><td>CT</td><td>88,5%</td></tr>
+                <tr><td>4</td><td>Terrasini</td><td>PA</td><td>86,9%</td></tr>
+                <tr><td>5</td><td>Montelepre</td><td>PA</td><td>86,6%</td></tr>
+                <tr><td>6</td><td>Petrosino</td><td>TP</td><td>86,5%</td></tr>
+                <tr><td>7</td><td>Mazara del Vallo</td><td>TP</td><td>86,0%</td></tr>
+                <tr><td>8</td><td>Castelvetrano</td><td>TP</td><td>85,8%</td></tr>
+                <tr><td>9</td><td>Capo d'Orlando</td><td>ME</td><td>85,4%</td></tr>
+                <tr><td>10</td><td>Balestrate</td><td>PA</td><td>85,3%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="an-table-wrap">
+            <h4>Bottom 10 — i più in difficoltà</h4>
+            <table class="an-table">
+              <thead><tr><th>#</th><th>Comune</th><th>Prov.</th><th>% RD</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>Palma di Montechiaro</td><td>AG</td><td>12,4%</td></tr>
+                <tr><td>2</td><td><strong>Palermo</strong></td><td>PA</td><td><strong>17,3%</strong></td></tr>
+                <tr><td>3</td><td>Lampedusa e Linosa</td><td>AG</td><td>30,6%</td></tr>
+                <tr><td>4</td><td>Augusta</td><td>SR</td><td>32,1%</td></tr>
+                <tr><td>5</td><td><strong>Catania</strong></td><td>CT</td><td><strong>33,4%</strong></td></tr>
+                <tr><td>6</td><td>Lentini</td><td>SR</td><td>38,0%</td></tr>
+                <tr><td>7</td><td>Pietraperzia</td><td>EN</td><td>39,7%</td></tr>
+                <tr><td>8</td><td>Francofonte</td><td>SR</td><td>40,5%</td></tr>
+                <tr><td>9</td><td>Licata</td><td>AG</td><td>41,3%</td></tr>
+                <tr><td>10</td><td>Noto</td><td>SR</td><td>42,9%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="an-section">
+        <h3>Cosa ci dicono questi numeri</h3>
+        <ol class="an-conclusions">
+          <li><strong>Il cambiamento c'è stato ed è stato profondo.</strong> Passare dal 9% al 55,5% in
+            quindici anni è una trasformazione strutturale, frutto del porta a porta, di un quadro
+            normativo più stringente e di nuove abitudini dei cittadini.</li>
+          <li><strong>Il problema non è più sistemico, è concentrato.</strong> Tre quarti dei comuni rispettano
+            la soglia. Il gap residuo è spiegato da pochi territori — soprattutto i due capoluoghi —
+            e da poche realtà periferiche con servizi sotto-dimensionati.</li>
+          <li><strong>Il prossimo passo è la qualità, non più solo la quantità.</strong> Ridurre la produzione
+            a monte, migliorare la purezza delle frazioni, costruire un'economia circolare locale.</li>
+        </ol>
+      </section>
+
     </div>
   </div>
 

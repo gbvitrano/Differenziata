@@ -833,6 +833,29 @@ function setupControls() {
     if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
   });
 
+  // Analisi modal
+  const analisiModal = document.getElementById('analisi-modal');
+  const btnAnalisi = document.getElementById('btn-analisi');
+  if (btnAnalisi && analisiModal) {
+    btnAnalisi.addEventListener('click', () => {
+      analisiModal.classList.remove('hidden');
+      // Reset scroll to top each time it opens
+      const content = analisiModal.querySelector('.modal-content-wide');
+      if (content) content.scrollTop = 0;
+    });
+    document.getElementById('analisi-close').addEventListener('click', () => {
+      analisiModal.classList.add('hidden');
+    });
+    analisiModal.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !analisiModal.classList.contains('hidden')) {
+        analisiModal.classList.add('hidden');
+      }
+    });
+  }
+
   setupDataTable();
   setupThematicPanel();
 }

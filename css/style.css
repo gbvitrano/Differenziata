@@ -705,6 +705,219 @@ body {
 
 .modal-close:hover { color: var(--accent); }
 
+/* ── ANALISI MODAL ───────────────────────────── */
+.modal-content-wide {
+  max-width: 960px;
+  width: 94%;
+  max-height: 90vh;
+  padding: 0;
+  overflow: hidden;
+}
+
+#analisi-modal .modal-content-wide {
+  display: flex;
+  flex-direction: column;
+}
+
+.an-hero {
+  padding: 28px 32px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+    transparent 70%);
+}
+.an-hero h2 {
+  font-size: 22px;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.an-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.an-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
+  border: 1px solid color-mix(in srgb, var(--accent) 80%, #000);
+}
+.an-pdf-btn:hover {
+  background: color-mix(in srgb, var(--accent) 88%, #000);
+  transform: translateY(-1px);
+}
+.an-pdf-btn span { font-size: 15px; }
+
+#analisi-modal .modal-close {
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+/* Scrollable body */
+#analisi-modal .modal-content-wide > *:not(.modal-close) {
+  flex-shrink: 0;
+}
+#analisi-modal .modal-content-wide {
+  overflow-y: auto;
+}
+
+/* KPI grid */
+.an-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 18px 32px;
+  background: var(--bg-panel2);
+  border-bottom: 1px solid var(--border);
+}
+.an-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.an-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.15;
+}
+.an-kpi-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+.an-kpi-delta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Sections */
+.an-section {
+  padding: 22px 32px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.an-section:last-of-type { border-bottom: 0; }
+.an-section h3 {
+  font-size: 15px;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+.an-section h4 {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.an-section p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+.an-section strong { color: var(--text-primary); }
+
+/* Figure */
+.an-figure {
+  margin: 10px 0 14px;
+  text-align: center;
+}
+.an-figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.an-figure figcaption {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Tables */
+.an-table-wrap {
+  overflow-x: auto;
+  margin: 8px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.an-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.an-table thead th {
+  background: var(--bg-panel2);
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border);
+}
+.an-table tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.an-table tbody tr:last-child td { border-bottom: 0; }
+.an-table tbody tr:hover { background: var(--bg-panel2); }
+.an-table tbody strong { color: var(--accent); }
+
+.an-tables-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 8px 0 14px;
+}
+
+/* Conclusions */
+.an-conclusions {
+  padding-left: 20px;
+  margin: 0 0 6px;
+}
+.an-conclusions li {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 10px;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .an-kpis { grid-template-columns: repeat(2, 1fr); padding: 14px 18px; }
+  .an-hero { padding: 22px 20px 14px; }
+  .an-hero h2 { font-size: 18px; }
+  .an-section { padding: 18px 20px 6px; }
+  .an-tables-2col { grid-template-columns: 1fr; }
+  .an-kpi-value { font-size: 17px; }
+}
+
 /* ── MAPLIBRE OVERRIDES ──────────────────────── */
 .maplibregl-ctrl-attrib {
   background: var(--bg-panel) !important;
