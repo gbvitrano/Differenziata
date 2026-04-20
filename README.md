@@ -161,10 +161,7 @@ Applicazione **100% client-side**, nessun backend.
 
 ## Licenza
 
-I dati del Catasto Rifiuti ISPRA sono pubblicati in licenza aperta per uso non commerciale; si prega di citare la fonte originale.
-
-Il codice sorgente è rilasciato sotto licenza [MIT](https://opensource.org/licenses/MIT).
-
+Il codice sorgente è rilasciato sotto licenza [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.it)
 ---
 
 ## Credits
