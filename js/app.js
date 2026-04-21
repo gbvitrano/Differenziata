@@ -537,6 +537,11 @@ function showInfoPanel(istat, row) {
   const kgRU   = (totRU && pop) ? ((totRU / pop) * 1000).toFixed(0) : null;
   const kgRD   = (totRD && pop) ? ((totRD / pop) * 1000).toFixed(0) : null;
 
+  // Soglia anomalia pro capite: > 1000 kg/ab/anno è chiaramente fuori scala
+  // (media italiana ~480 kg/ab, valore normale 300–700 kg/ab)
+  const SOGLIA_ANOMALIA_KGAB = 1000;
+  const isAnomalo = kgRU !== null && parseInt(kgRU) > SOGLIA_ANOMALIA_KGAB;
+
   panel.innerHTML = `
     <div id="sidebar-resize-handle"></div>
     <button id="info-panel-close" onclick="closeInfoPanel()">✕</button>
@@ -571,16 +576,22 @@ function showInfoPanel(istat, row) {
         <div class="info-cell-value">${totRU.toLocaleString('it-IT', {maximumFractionDigits:1})}</div>
       </div>` : ''}
       ${kgRU ? `
-      <div class="info-cell">
+      <div class="info-cell${isAnomalo ? ' info-cell-anomalo' : ''}">
         <div class="info-cell-label">Pro capite totale</div>
-        <div class="info-cell-value">${kgRU} kg/ab</div>
+        <div class="info-cell-value">${isAnomalo ? '⚠ ' : ''}${parseInt(kgRU).toLocaleString('it-IT')} kg/ab</div>
       </div>` : ''}
       ${kgRD ? `
       <div class="info-cell">
         <div class="info-cell-label">Pro capite RD</div>
-        <div class="info-cell-value">${kgRD} kg/ab</div>
+        <div class="info-cell-value">${parseInt(kgRD).toLocaleString('it-IT')} kg/ab</div>
       </div>` : ''}
     </div>
+
+    ${isAnomalo ? `
+    <div class="info-anomalia-banner">
+      <span class="info-anomalia-icon">⚠</span>
+      <span>Dato pro capite anomalo (${parseInt(kgRU).toLocaleString('it-IT')} kg/ab). Il valore tipico è 300–700 kg/ab/anno. Possibile errore nella fonte ISPRA.</span>
+    </div>` : ''}
 
     <div class="chart-section">
       <h3>Composizione RD ${currentAnno}</h3>
