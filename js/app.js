@@ -2,7 +2,8 @@
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 
-const COMUNI_PMTILES = 'https://gbvitrano.github.io/ANNCSU/dati/comuni.pmtiles';
+// const COMUNI_PMTILES = 'https://gbvitrano.github.io/ANNCSU/dati/comuni.pmtiles';
+const COMUNI_PMTILES = 'https://gbvitrano.it/anncus/data/comuni.pmtiles';
 const DATA_URL       = 'dati/sicilia.csv';
 
 // Color scale: 20 steps × 5% from 0 to 100 (red → yellow → green)
