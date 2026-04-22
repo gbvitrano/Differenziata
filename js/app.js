@@ -127,12 +127,59 @@ let trendChart  = null;
 let fractionChart = null;
 let currentThematic = null; // null = % RD default, string = fraction key
 let thematicScale   = null; // { breaks, colors, opt } computed per anno
+let pendingUrlComune = null; // comune name from URL, applied after map loads
+
+// ── URL ROUTING ───────────────────────────────────────────────────────────────
+
+function readUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+
+  const anno = params.get('anno');
+  if (anno && YEARS.includes(anno)) currentAnno = anno;
+
+  const provincia = params.get('provincia');
+  if (provincia) {
+    const match = Object.keys(PROVINCE_BOUNDS).find(
+      p => p.toLowerCase() === provincia.toLowerCase()
+    );
+    if (match) currentProvincia = match;
+  }
+
+  return params.get('comune') || null;
+}
+
+function applyUrlComune(comuneName) {
+  if (!comuneName) return;
+  const annoData = allData[currentAnno] || {};
+  const match = Object.values(annoData).find(
+    r => r.comune.toLowerCase() === comuneName.toLowerCase() &&
+         (!currentProvincia || r.provincia === currentProvincia)
+  );
+  if (!match) return;
+  const sel = document.getElementById('comune-select');
+  if (sel) sel.value = match.istat;
+  selectComune(match.istat, match);
+  zoomToComune(match.istat, match.provincia);
+}
+
+function updateUrl() {
+  const params = new URLSearchParams();
+  if (currentAnno !== '2024') params.set('anno', currentAnno);
+  if (currentProvincia) params.set('provincia', currentProvincia.toLowerCase());
+  if (selectedIstat) {
+    const row = allData[currentAnno]?.[selectedIstat];
+    if (row) params.set('comune', row.comune.toLowerCase());
+  }
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? '?' + qs : window.location.pathname);
+}
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   setLoading(true, 'Caricamento dati…');
   await loadData();
+  pendingUrlComune = readUrlParams();
   initMap();
   setupControls();
   buildLegend();
@@ -326,6 +373,7 @@ function initMap() {
     setupMapInteractions();
     setLoading(false);
     updateMap();
+    applyUrlComune(pendingUrlComune);
   });
 }
 
@@ -395,6 +443,7 @@ function selectComune(istat, row) {
   selectedIstat = istat;
   map.setFilter('comuni-selected', ['==', 'pro_com_t', istat]);
   showInfoPanel(istat, row);
+  updateUrl();
 }
 
 // ── RESPONSIVE PADDING ────────────────────────────────────────────────────────
@@ -617,6 +666,7 @@ function closeInfoPanel() {
   if (fractionChart) { fractionChart.destroy(); fractionChart = null; }
   if (trendChart)    { trendChart.destroy();    trendChart    = null; }
   if (map) map.setFilter('comuni-selected', ['==', 'pro_com_t', '']);
+  updateUrl();
 }
 
 function renderTrendChart(istat) {
@@ -809,6 +859,7 @@ function setupControls() {
     display.textContent = currentAnno;
     updateMap();
     computeStats();
+    updateUrl();
     if (selectedIstat) {
       const row = allData[currentAnno]?.[selectedIstat];
       if (row) showInfoPanel(selectedIstat, row);
@@ -825,6 +876,8 @@ function setupControls() {
     sel.appendChild(opt);
   });
 
+  sel.value = currentProvincia;
+
   sel.addEventListener('change', () => {
     currentProvincia = sel.value;
     // Reset comune selection
@@ -834,6 +887,7 @@ function setupControls() {
     closeInfoPanel();
     populateComuneSelect();
     updateMap();
+    updateUrl();
     if (currentProvincia && PROVINCE_BOUNDS[currentProvincia]) {
       const [[w, s], [e, n]] = PROVINCE_BOUNDS[currentProvincia];
       map.fitBounds([[w, s], [e, n]], { padding: getResponsivePadding(), duration: 800 });
@@ -863,6 +917,7 @@ function setupControls() {
       closeInfoPanel();
       selectedIstat = null;
       if (map) map.setFilter('comuni-selected', ['==', 'pro_com_t', '']);
+      updateUrl();
       return;
     }
     const row = allData[currentAnno]?.[istat];
