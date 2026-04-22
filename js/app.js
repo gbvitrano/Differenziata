@@ -868,7 +868,7 @@ function setupControls() {
 
   // Province filter
   const sel = document.getElementById('province-select');
-  const provinces = ['', ...Object.keys(PROVINCE_BOUNDS)];
+  const provinces = ['', ...Object.keys(PROVINCE_BOUNDS).sort((a, b) => a.localeCompare(b, 'it'))];
   provinces.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p;
