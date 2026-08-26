@@ -257,6 +257,11 @@ function parseCSV(text) {
 
 // ── MAP ───────────────────────────────────────────────────────────────────────
 
+const BASEMAP_STYLES = {
+  light: 'https://tiles.openfreemap.org/styles/positron',
+  dark:  'https://tiles.openfreemap.org/styles/dark',
+};
+
 function initMap() {
   const isDark = document.body.dataset.theme !== 'light';
 
@@ -266,30 +271,7 @@ function initMap() {
 
   map = new maplibregl.Map({
     container: 'map',
-    style: {
-      version: 8,
-      sources: {
-        'carto-bg': {
-          type: 'raster',
-          tiles: isDark
-            ? ['https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png']
-            : ['https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png'],
-          tileSize: 256,
-          attribution: '© OpenStreetMap © CARTO',
-        },
-        'carto-labels': {
-          type: 'raster',
-          tiles: isDark
-            ? ['https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png']
-            : ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png'],
-          tileSize: 256,
-        },
-      },
-      layers: [
-        { id: 'bg', type: 'raster', source: 'carto-bg' },
-      ],
-      glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
-    },
+    style: isDark ? BASEMAP_STYLES.dark : BASEMAP_STYLES.light,
     center: SICILIA_CENTER,
     zoom: SICILIA_ZOOM,
     minZoom: 5,
@@ -305,76 +287,76 @@ function initMap() {
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
   map.on('load', () => {
-    // Comuni source (PMTiles)
-    map.addSource('comuni', {
-      type: 'vector',
-      url: `pmtiles://${COMUNI_PMTILES}`,
-      attribution: 'Confini: ISTAT via confini-amministrativi.it',
-    });
-
-    // Fill layer – choropleth
-    map.addLayer({
-      id: 'comuni-fill',
-      type: 'fill',
-      source: 'comuni',
-      'source-layer': 'comuni',
-      paint: {
-        'fill-color': buildColorExpression(),
-        'fill-opacity': 0.85,
-      },
-    });
-
-    // Outline layer
-    map.addLayer({
-      id: 'comuni-outline',
-      type: 'line',
-      source: 'comuni',
-      'source-layer': 'comuni',
-      paint: {
-        'line-color': isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)',
-        'line-width': 0.5,
-      },
-      filter: ['has', 'pro_com_t'],
-    });
-
-    // Hover outline
-    map.addLayer({
-      id: 'comuni-hover',
-      type: 'line',
-      source: 'comuni',
-      'source-layer': 'comuni',
-      paint: {
-        'line-color': HOVER_OUTLINE,
-        'line-width': 2,
-      },
-      filter: ['==', 'pro_com_t', ''],
-    });
-
-    // Selected outline
-    map.addLayer({
-      id: 'comuni-selected',
-      type: 'line',
-      source: 'comuni',
-      'source-layer': 'comuni',
-      paint: {
-        'line-color': SELECT_OUTLINE,
-        'line-width': 3,
-      },
-      filter: ['==', 'pro_com_t', ''],
-    });
-
-    // Labels on top
-    map.addLayer({
-      id: 'labels',
-      type: 'raster',
-      source: 'carto-labels',
-    });
-
+    addComuniLayers();
     setupMapInteractions();
     setLoading(false);
     updateMap();
     applyUrlComune(pendingUrlComune);
   });
+}
+
+// Adds the comuni source/layers on top of whatever basemap style is currently loaded.
+// Inserted before the basemap's first label layer, so place-name labels stay on top.
+function addComuniLayers() {
+  const isDark = document.body.dataset.theme !== 'light';
+  const firstSymbolId = map.getStyle().layers.find(l => l.type === 'symbol')?.id;
+
+  map.addSource('comuni', {
+    type: 'vector',
+    url: `pmtiles://${COMUNI_PMTILES}`,
+    attribution: 'Confini: ISTAT via confini-amministrativi.it',
+  });
+
+  // Fill layer – choropleth
+  map.addLayer({
+    id: 'comuni-fill',
+    type: 'fill',
+    source: 'comuni',
+    'source-layer': 'comuni',
+    paint: {
+      'fill-color': buildColorExpression(),
+      'fill-opacity': 0.85,
+    },
+  }, firstSymbolId);
+
+  // Outline layer
+  map.addLayer({
+    id: 'comuni-outline',
+    type: 'line',
+    source: 'comuni',
+    'source-layer': 'comuni',
+    paint: {
+      'line-color': isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)',
+      'line-width': 0.5,
+    },
+    filter: ['has', 'pro_com_t'],
+  }, firstSymbolId);
+
+  // Hover outline
+  map.addLayer({
+    id: 'comuni-hover',
+    type: 'line',
+    source: 'comuni',
+    'source-layer': 'comuni',
+    paint: {
+      'line-color': HOVER_OUTLINE,
+      'line-width': 2,
+    },
+    filter: ['==', 'pro_com_t', ''],
+  }, firstSymbolId);
+
+  // Selected outline
+  map.addLayer({
+    id: 'comuni-selected',
+    type: 'line',
+    source: 'comuni',
+    'source-layer': 'comuni',
+    paint: {
+      'line-color': SELECT_OUTLINE,
+      'line-width': 3,
+    },
+    filter: ['==', 'pro_com_t', ''],
+  }, firstSymbolId);
 }
 
 // ── MAP INTERACTIONS ──────────────────────────────────────────────────────────
@@ -1063,20 +1045,13 @@ function toggleTheme() {
 
   if (!map) return;
 
-  // Update basemap tiles
-  const tiles = isDark
-    ? ['https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png']
-    : ['https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png'];
-  const labelTiles = isDark
-    ? ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png']
-    : ['https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png'];
-
-  map.getSource('carto-bg')?.setTiles(tiles);
-  map.getSource('carto-labels')?.setTiles(labelTiles);
-
-  // Update outline color
-  const outlineColor = isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)';
-  map.setPaintProperty('comuni-outline', 'line-color', outlineColor);
+  // Swap basemap style (comuni layers are wiped by setStyle, so re-add them once loaded)
+  map.setStyle(isDark ? BASEMAP_STYLES.light : BASEMAP_STYLES.dark);
+  map.once('style.load', () => {
+    addComuniLayers();
+    updateMap();
+    map.setFilter('comuni-selected', ['==', 'pro_com_t', selectedIstat || '']);
+  });
 
   // Re-render charts with updated colors
   if (selectedIstat) {
